@@ -21,7 +21,9 @@ export default function ContactTable(props: {
     const [selectedContacts, setSelectedContacts] = useState<number[]>([])
     const [clickedContact, setClickedContact] = useState<ContactModel>(emptyContact)
 
-    const closeModals = useCallback(() => setModals({ delete: false, form: false }), [])
+    const closeModals = useCallback(() => {
+        setModals({ delete: false, form: false })
+    }, [])
 
     const onEditClick = useCallback((contact: ContactModel) => {
         console.log(contact)
@@ -48,20 +50,18 @@ export default function ContactTable(props: {
     const handleDeleteClick = useCallback(() => {
         closeModals()
         if (!clickedContact.id && !selectedContacts) return
-
+        
         props.deleteCallback(clickedContact.id ? [clickedContact.id] : selectedContacts)
-        setClickedContact(emptyContact)
     }, [clickedContact, selectedContacts])
 
 
     const handleDoneForm = useCallback((contact: ContactModel) => {
         closeModals()
-        setClickedContact({id: 0, email: "", phone: "", firstName: "", lastName: ""})
+        setClickedContact({ id: 0, email: "", phone: "", firstName: "", lastName: "" })
         clickedContact.id ?
             props.editCallback(contact) :
             props.createCallback(contact)
     }, [clickedContact])
-
 
     const columns: GridColDef[] = useMemo(() => [
         {
@@ -142,7 +142,11 @@ export default function ContactTable(props: {
                     <DataGrid
                         rows={props.contacts}
                         columns={columns}
-                        autoPageSize
+                        pageSizeOptions={[10]}
+                        paginationModel={{
+                            pageSize: 10,
+                            page: 0,
+                        }}
                         checkboxSelection
                         sx={props.sx}
                         onRowSelectionModelChange={onRowSelectionModelChange}

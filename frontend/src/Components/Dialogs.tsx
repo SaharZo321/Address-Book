@@ -1,6 +1,8 @@
 import { ChangeEventHandler, useCallback, useEffect, useMemo, useState } from "react"
 import { ContactModel } from "../types"
+import { emailRegex, phonePattern, phoneRegex, wordRegex } from "../constants";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, List, ListItem, TextField } from "@mui/material"
+import { faker } from '@faker-js/faker';
 
 export function FormDialog(props: {
     open: boolean,
@@ -11,6 +13,31 @@ export function FormDialog(props: {
 
     const [contact, setContact] = useState<ContactModel>(props.contact)
 
+    const generate = useCallback(() => {
+        const firstName = faker.person.firstName()
+        const lastName = faker.person.lastName()
+        const contact = {
+            id: 0,
+            firstName: firstName,
+            lastName: lastName,
+            email: faker.internet.email({
+                firstName,
+                lastName
+            }),
+            phone: faker.helpers.fromRegExp(phonePattern),
+        }
+        setContact(contact)
+    }, [])
+
+    const isContactValid = useMemo(() => {
+        return (
+            contact.firstName.match(wordRegex) &&
+            contact.lastName.match(wordRegex) &&
+            contact.email.match(emailRegex) &&
+            contact.phone.match(phoneRegex)
+        )
+    } ,[contact])
+
     useEffect(() => {
         setContact(props.contact)
         console.log("refreshed dialog")
@@ -19,24 +46,25 @@ export function FormDialog(props: {
     const str = useMemo(() => (props.contact.id ? "Edit" : "Create"), [props.contact])
 
     const onFormChange: ChangeEventHandler<HTMLInputElement> = useCallback(event => {
+        let value = event.target.value
+        const id = event.target.id
+        if (id === "firstName" || id ==="lastName")
+            value = value.charAt(0).toUpperCase() + value.toLowerCase().slice(1)
         setContact(prev => ({
             ...prev,
-            [event.target.id]: event.target.value
+            [id]: value
         }))
     }, [])
+
+    const onSubmit = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault()
+        props.handleDoneForm(contact)
+    }, [contact])
 
     return (
         <Dialog
             open={props.open}
             onClose={props.handleClose}
-            PaperProps={{
-                component: "form",
-                onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
-                    event.preventDefault()
-                    props.handleDoneForm(contact)
-                },
-                autoComplete: "off",
-            }}
         >
             <DialogTitle align="center">
                 {`${str} Contact`}
@@ -45,6 +73,7 @@ export function FormDialog(props: {
                 <List>
                     <ListItem>
                         <TextField
+                            error={!contact.firstName.match(wordRegex)}
                             autoFocus
                             required
                             id="firstName"
@@ -56,6 +85,7 @@ export function FormDialog(props: {
                     </ListItem>
                     <ListItem>
                         <TextField
+                            error={!contact.lastName.match(wordRegex)}
                             required
                             id="lastName"
                             label="Last name"
@@ -66,6 +96,7 @@ export function FormDialog(props: {
                     </ListItem>
                     <ListItem>
                         <TextField
+                            error={!contact.email.match(emailRegex)}
                             required
                             id="email"
                             label="Email"
@@ -77,6 +108,7 @@ export function FormDialog(props: {
                     </ListItem>
                     <ListItem>
                         <TextField
+                            error={!contact.phone.match(phoneRegex)}
                             required
                             id="phone"
                             label="Phone"
@@ -86,11 +118,16 @@ export function FormDialog(props: {
                             onChange={onFormChange}
                         />
                     </ListItem>
+                    <ListItem sx={{justifyContent: "center"}}>
+                        <Button variant="contained" onClick={generate}>
+                            Generate
+                        </Button>
+                    </ListItem>
                 </List>
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button variant="contained" type="submit">{str}</Button>
+                <Button variant="contained" disabled={!isContactValid} onClick={onSubmit}>{str}</Button>
             </DialogActions>
         </Dialog>
     )
