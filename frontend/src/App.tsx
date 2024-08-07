@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { urlCreate, urlDelete, urlGet, urlUpdate } from './constants'
-import { ContactsData, ContactModel } from './types'
+import { ContactModel, ValidationError } from './types'
 import ContactTable from './Components/ContactTable'
 import { Box } from '@mui/material'
 
@@ -26,9 +26,8 @@ function App() {
         setIsLoading(true)
         try {
             const response = await fetch(urlGet)
-            const data: ContactsData = await response.json()
-            setContacts(data.contacts)
-            console.log(data.contacts)
+            const data: ContactModel[] = await response.json()
+            setContacts(data)
         }
         catch(e) {
             alert(e)
@@ -43,45 +42,48 @@ function App() {
 
     
 
-    const onEditContact = useCallback(async (contact: ContactModel) => {
-        const url = `${urlUpdate}/${contact.id}`
+    const onEditContact = useCallback(async (contact: ContactModel, cb?: () => void) => {
+        const url = urlUpdate + `${contact.id}`
         
         const response = await send(url, "PATCH", contact)
         
         if (response.status !== 201 && response.status !== 200) {
-            const data = await response.json()
-            alert(data.message)
+            const data: ValidationError = await response.json()
+            alert(data.detail)
             return
         }
 
+        cb?.()
         fetchContacts()
 
     }, [])
 
-    const onCreateContact = useCallback(async (contact: ContactModel) => {
+    const onCreateContact = useCallback(async (contact: ContactModel, cb?: () => void) => {
         
         const response = await send(urlCreate, "POST", contact)
 
         if (response.status !== 201 && response.status !== 200) {
-            const data = await response.json()
-            alert(data.message)
+            const data: ValidationError = await response.json()
+            alert(data.detail)
             return
         }
 
+        cb?.()
         fetchContacts()
 
     }, [])
 
-    const onDeleteContact = useCallback(async (ids: number[]) => {
+    const onDeleteContact = useCallback(async (ids: number[], cb?: () => void) => {
 
-        const response = await send(urlDelete, "DELETE", {"ids": ids})
+        const response = await send(urlDelete, "DELETE", ids)
         
         if (response.status !== 201 && response.status !== 200) {
-            const data = await response.json()
-            alert(data.message)
+            const data: ValidationError = await response.json()
+            alert(data.detail)
             return
         }
 
+        cb?.()
         fetchContacts()
 
     }, [])

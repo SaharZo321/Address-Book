@@ -1,17 +1,18 @@
-from flask import Flask
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///instance//addressbook.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
 
 
-app = Flask(__name__)
-CORS(app=app)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///addressbook.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-db = SQLAlchemy(app=app)
-
-get_ep = "/contacts"
-create_ep = "/create"
-delete_ep = "/delete"
-update_ep = "/update"
+UPDATE = "/update/"
+CREATE = "/create/"
+GET = "/contacts/"
+DELETE = "/delete/"

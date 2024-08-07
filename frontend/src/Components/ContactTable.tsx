@@ -5,14 +5,14 @@ import { useCallback, useMemo, useState } from "react";
 import { Add, Delete, Edit } from "@mui/icons-material";
 import { DeleteDialog, FormDialog } from "./Dialogs";
 
-const emptyContact: ContactModel = { id: 0, firstName: "", lastName: "", email: "", phone: "" }
+const emptyContact: ContactModel = { id: 0, first_name: "", last_name: "", email: "", phone: "" }
 
 export default function ContactTable(props: {
     contacts: ContactModel[],
     sx?: SxProps,
-    editCallback: (contact: ContactModel) => void,
-    createCallback: (contact: ContactModel) => void,
-    deleteCallback: (ids: number[]) => void,
+    editCallback: (contact: ContactModel, cb?: () => void) => void,
+    createCallback: (contact: ContactModel, cb?: () => void) => void,
+    deleteCallback: (ids: number[], cb?: () => void) => void,
     updateTable: () => void,
     isLoading: boolean,
 }) {
@@ -23,6 +23,7 @@ export default function ContactTable(props: {
 
     const closeModals = useCallback(() => {
         setModals({ delete: false, form: false })
+        setClickedContact(emptyContact)
     }, [])
 
     const onEditClick = useCallback((contact: ContactModel) => {
@@ -48,19 +49,16 @@ export default function ContactTable(props: {
     }, [])
 
     const handleDeleteClick = useCallback(() => {
-        closeModals()
         if (!clickedContact.id && !selectedContacts) return
         
-        props.deleteCallback(clickedContact.id ? [clickedContact.id] : selectedContacts)
+        props.deleteCallback(clickedContact.id ? [clickedContact.id] : selectedContacts, closeModals)
     }, [clickedContact, selectedContacts])
 
 
     const handleDoneForm = useCallback((contact: ContactModel) => {
-        closeModals()
-        setClickedContact({ id: 0, email: "", phone: "", firstName: "", lastName: "" })
         clickedContact.id ?
-            props.editCallback(contact) :
-            props.createCallback(contact)
+            props.editCallback(contact, closeModals) :
+            props.createCallback(contact, closeModals)
     }, [clickedContact])
 
     const columns: GridColDef[] = useMemo(() => [
@@ -82,8 +80,8 @@ export default function ContactTable(props: {
             width: 70,
         },
         { field: 'id', headerName: 'ID', type: "number", width: 70 },
-        { field: 'firstName', headerName: 'First name', width: 130 },
-        { field: 'lastName', headerName: 'Last name', width: 130 },
+        { field: 'first_name', headerName: 'First name', width: 130 },
+        { field: 'last_name', headerName: 'Last name', width: 130 },
         { field: 'email', headerName: 'Email', width: 200 },
         { field: 'phone', headerName: 'Phone', width: 120 },
         {
@@ -92,7 +90,7 @@ export default function ContactTable(props: {
             description: 'This column is not sortable.',
             sortable: false,
             width: 160,
-            valueGetter: (_, contact: ContactModel) => `${contact.firstName || ''} ${contact.lastName || ''}`,
+            valueGetter: (_, contact: ContactModel) => `${contact.first_name || ''} ${contact.last_name || ''}`,
         },
     ], [])
 

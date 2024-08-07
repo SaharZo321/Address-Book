@@ -1,7 +1,8 @@
-export const urlGet = "http://localhost:5000/contacts"
-export const urlDelete = "http://localhost:5000/delete"
-export const urlUpdate = "http://localhost:5000/update"
-export const urlCreate = "http://localhost:5000/create"
+export const url = "http://localhost:8000/"
+export const urlGet = url + "contacts/"
+export const urlDelete = url + "delete/"
+export const urlUpdate = url + "update/"
+export const urlCreate = url + "create/"
 
 export const phoneRegex = /^[+][1-9][0-9]{0,2}-[0-9]{3}-[0-9]{3}-[0-9]{3}$/
 export const phonePattern = "[+][1-9][0-9]{0,2}-[0-9]{3}-[0-9]{3}-[0-9]{3}"

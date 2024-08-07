@@ -3,6 +3,8 @@ import { ContactModel } from "../types"
 import { emailRegex, phonePattern, phoneRegex, wordRegex } from "../constants";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, List, ListItem, TextField } from "@mui/material"
 import { faker } from '@faker-js/faker';
+import _ from "lodash";
+
 
 export function FormDialog(props: {
     open: boolean,
@@ -16,10 +18,10 @@ export function FormDialog(props: {
     const generate = useCallback(() => {
         const firstName = faker.person.firstName()
         const lastName = faker.person.lastName()
-        const contact = {
+        const contact: ContactModel = {
             id: 0,
-            firstName: firstName,
-            lastName: lastName,
+            first_name: firstName,
+            last_name: lastName,
             email: faker.internet.email({
                 firstName,
                 lastName
@@ -31,24 +33,25 @@ export function FormDialog(props: {
 
     const isContactValid = useMemo(() => {
         return (
-            contact.firstName.match(wordRegex) &&
-            contact.lastName.match(wordRegex) &&
+            contact.first_name.match(wordRegex) &&
+            contact.last_name.match(wordRegex) &&
             contact.email.match(emailRegex) &&
-            contact.phone.match(phoneRegex)
+            contact.phone.match(phoneRegex) &&
+            !_.isEqual(contact, props.contact)
         )
     } ,[contact])
 
     useEffect(() => {
-        setContact(props.contact)
+        _.delay(setContact, 200, props.contact)
         console.log("refreshed dialog")
-    }, [props.contact])
+    }, [props.open])
 
     const str = useMemo(() => (props.contact.id ? "Edit" : "Create"), [props.contact])
 
     const onFormChange: ChangeEventHandler<HTMLInputElement> = useCallback(event => {
         let value = event.target.value
         const id = event.target.id
-        if (id === "firstName" || id ==="lastName")
+        if (id === "first_name" || id ==="last_name")
             value = value.charAt(0).toUpperCase() + value.toLowerCase().slice(1)
         setContact(prev => ({
             ...prev,
@@ -73,23 +76,23 @@ export function FormDialog(props: {
                 <List>
                     <ListItem>
                         <TextField
-                            error={!contact.firstName.match(wordRegex)}
+                            error={!contact.first_name.match(wordRegex)}
                             autoFocus
                             required
-                            id="firstName"
+                            id="first_name"
                             label="First name"
-                            value={contact.firstName}
+                            value={contact.first_name}
                             fullWidth
                             onChange={onFormChange}
                         />
                     </ListItem>
                     <ListItem>
                         <TextField
-                            error={!contact.lastName.match(wordRegex)}
+                            error={!contact.last_name.match(wordRegex)}
                             required
-                            id="lastName"
+                            id="last_name"
                             label="Last name"
-                            value={contact.lastName}
+                            value={contact.last_name}
                             fullWidth
                             onChange={onFormChange}
                         />

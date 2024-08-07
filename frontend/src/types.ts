@@ -1,12 +1,11 @@
 export type ContactModel = {
     id: number
-    firstName: string
-    lastName: string
+    first_name: string
+    last_name: string
     email: string
     phone: string
 }
 
-export type ContactsData = {
-    contacts: ContactModel[]
+export type ValidationError = {
+    detail: any
 }
-

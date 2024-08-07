@@ -1,118 +1,86 @@
-from flask import jsonify, request
-from sqlalchemy.exc import IntegrityError
-from models import Contact
-from config import db, app, get_ep, create_ep, delete_ep, update_ep
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy.orm import Session
+import crud, models, schemas
+import config
+from fastapi.middleware.cors import CORSMiddleware
 
+models.Base.metadata.create_all(bind=config.engine)
 
-def jsonify_message(message):
-    return jsonify({"message": str(message)})
+app = FastAPI()
 
+origins = [
+    "*",
+]
 
-@app.route(get_ep, methods=["GET"])
-def get_contacts():
-    contacts: list[Contact] = Contact.query.all()
-    json_contacts = [contact.to_json() for contact in contacts]
-    return jsonify({"contacts": json_contacts})
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-@app.route(create_ep, methods=["POST"])
-def create_contact():
-    contact = {
-        "first_name": request.json.get("firstName"),
-        "last_name": request.json.get("lastName"),
-        "phone": request.json.get("phone"),
-        "email": request.json.get("email"),
-    }
-
-    if any(value is None for value in contact.values()):
-        return (
-            jsonify_message("Mandatory field was not included"),
-            400,
-        )
-
-    new_contact = Contact(**contact)
-
+# Dependency
+def get_db():
+    db = config.SessionLocal()
     try:
-        db.session.add(new_contact)
-        db.session.commit()
-    except IntegrityError as e:
-        print(e)
-        return (
-            jsonify_message("A user with these email address or phone number already exists."),
-            400,
-        )
-    except Exception as e:
-        print(e)
-        return (
-            jsonify_message(e),
-            400,
-        )
+        yield db
+    finally:
+        db.close()
 
-    return (
-        jsonify_message(
-            f"User {new_contact.first_name} {new_contact.last_name} created."
-        ),
-        201,
+
+@app.post(config.CREATE, response_model=schemas.Contact)
+def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)):
+
+    db_contact_email = crud.get_contact_by_email(db, email=contact.email)
+    if db_contact_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    db_contact_phone = crud.get_contact_by_phone(db, phone=contact.phone)
+    if db_contact_phone:
+        raise HTTPException(status_code=400, detail="Phone number already registered")
+
+    return crud.create_contact(db=db, contact=contact)
+
+
+@app.get(config.GET, response_model=list[schemas.Contact])
+def read_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    contacts = crud.get_contacts(db, skip=skip, limit=limit)
+    return contacts
+
+
+@app.get(config.GET + "{id}", response_model=schemas.Contact)
+def read_contact(id: int, db: Session = Depends(get_db)):
+    db_contact = crud.get_contact(db, id)
+    if db_contact is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_contact
+
+
+@app.patch(config.UPDATE + "{id}", response_model=schemas.Contact)
+def update_contact(id: int, contact: schemas.Contact, db: Session = Depends(get_db)):
+    db_contact = crud.get_contact(db, id)
+
+    if db_contact is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db_contact_email = crud.get_contact_by_email(
+        db=db, email=contact.email, exclude_id=id
     )
+    if db_contact_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-
-@app.route(f"{update_ep}/<int:user_id>", methods=["PATCH"])
-def update_contact(user_id: int):
-    contact = db.session.get(entity=Contact, ident=user_id)
-
-    if not contact:
-        return (
-            jsonify_message("User not found"),
-            404,
-        )
-
-    data = request.json
-    contact.first_name = data.get("firstName", contact.first_name)
-    contact.last_name = data.get("lastName", contact.last_name)
-    contact.phone = data.get("phone", contact.phone)
-    contact.email = data.get("email", contact.email)
-
-    db.session.commit()
-
-    return (
-        jsonify_message(f"User {contact.first_name} {contact.last_name} updated."),
-        200,
+    db_contact_phone = crud.get_contact_by_phone(
+        db=db, phone=contact.phone, exclude_id=id
     )
+    if db_contact_phone:
+        raise HTTPException(status_code=400, detail="Phone number already registered")
 
+    return crud.edit_contact(db=db, contact=contact)
 
-@app.route(delete_ep, methods=["DELETE"])
-def delete_contact():
-
-    data = request.json
-    ids: list[int] = data.get("ids", [])
-    if not ids:
-        return (
-            jsonify_message(f"No users to delete found"),
-            400,
-        )
-    
+@app.delete(config.DELETE, response_model=list[int])
+def delete_contacts(ids: list[int], db: Session = Depends(get_db)):
     print(ids)
-    contacts = list(map(lambda id: db.session.get(entity=Contact, ident=id), ids))
-    
-    if any(not contact for contact in contacts):
-        return (
-            jsonify_message(f"Some users were not found"),
-            404,
-        )
-    
-    for contact in contacts:
-        db.session.delete(contact)
-
-    db.session.commit()
-
-    return (
-        jsonify_message(f"Users deleted."),
-        200,
-    )
-
-
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-
-    app.run(debug=True)
+    if any((crud.get_contact(db, id) is None) for id in ids):
+        raise HTTPException(status_code=400, detail="Some users were not found")
+    return crud.delete_contacts(db, ids)
