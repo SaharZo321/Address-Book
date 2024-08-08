@@ -43,15 +43,14 @@ def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)
     return crud.create_contact(db=db, contact=contact)
 
 
-@app.get(config.GET, response_model=list[schemas.Contact])
-def read_contacts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    contacts = crud.get_contacts(db, skip=skip, limit=limit)
-    return contacts
-
+@app.post(config.GET, response_model=schemas.Contacts)
+def read_contacts(options: schemas.Options, db: Session = Depends(get_db)):
+    print(options)
+    return crud.get_contacts(db, options)
 
 @app.get(config.GET + "{id}", response_model=schemas.Contact)
 def read_contact(id: int, db: Session = Depends(get_db)):
-    db_contact = crud.get_contact(db, id)
+    db_contact = crud.get_contact_by_id(db, id)
     if db_contact is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_contact
@@ -59,7 +58,7 @@ def read_contact(id: int, db: Session = Depends(get_db)):
 
 @app.patch(config.UPDATE + "{id}", response_model=schemas.Contact)
 def update_contact(id: int, contact: schemas.Contact, db: Session = Depends(get_db)):
-    db_contact = crud.get_contact(db, id)
+    db_contact = crud.get_contact_by_id(db, id)
 
     if db_contact is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -80,7 +79,6 @@ def update_contact(id: int, contact: schemas.Contact, db: Session = Depends(get_
 
 @app.delete(config.DELETE, response_model=list[int])
 def delete_contacts(ids: list[int], db: Session = Depends(get_db)):
-    print(ids)
-    if any((crud.get_contact(db, id) is None) for id in ids):
+    if any((crud.get_contact_by_id(db, id) is None) for id in ids):
         raise HTTPException(status_code=400, detail="Some users were not found")
     return crud.delete_contacts(db, ids)

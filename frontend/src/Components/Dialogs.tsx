@@ -42,8 +42,7 @@ export function FormDialog(props: {
     } ,[contact])
 
     useEffect(() => {
-        _.delay(setContact, 200, props.contact)
-        console.log("refreshed dialog")
+        _.delay(setContact, props.open ? 0 : 200, props.contact)
     }, [props.open])
 
     const str = useMemo(() => (props.contact.id ? "Edit" : "Create"), [props.contact])

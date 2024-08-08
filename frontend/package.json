@@ -16,7 +16,9 @@
     "@mui/material": "^5.16.6",
     "@mui/x-data-grid": "^7.12.0",
     "@mui/x-data-grid-generator": "^7.12.0",
+    "@tanstack/react-query": "^5.51.21",
     "@types/lodash": "^4.17.7",
+    "change-case": "^5.4.4",
     "lodash": "^4.17.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
