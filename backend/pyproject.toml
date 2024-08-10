@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "address-book-backend"
+version = "0.5.0"
+description = ""
+authors = ["Sahar Zolberg <saharz321@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.112.0"
+uvicorn = "^0.30.5"
+aiosqlite = "^0.20.0"
+alchemical = "^1.0.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

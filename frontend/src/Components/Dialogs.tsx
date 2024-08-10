@@ -1,7 +1,7 @@
 import { ChangeEventHandler, useCallback, useEffect, useMemo, useState } from "react"
 import { ContactModel } from "../types"
 import { emailRegex, phonePattern, phoneRegex, wordRegex } from "../constants";
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, List, ListItem, TextField } from "@mui/material"
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, List, ListItem, TextField } from "@mui/material"
 import { faker } from '@faker-js/faker';
 import _ from "lodash";
 
@@ -11,6 +11,7 @@ export function FormDialog(props: {
     contact: ContactModel,
     handleClose: () => void,
     handleDoneForm: (contact: ContactModel) => void,
+    isLoading?: boolean
 }) {
 
     const [contact, setContact] = useState<ContactModel>(props.contact)
@@ -18,8 +19,8 @@ export function FormDialog(props: {
     const generate = useCallback(() => {
         const firstName = faker.person.firstName()
         const lastName = faker.person.lastName()
-        const contact: ContactModel = {
-            id: 0,
+        const newContact: ContactModel = {
+            id: contact.id,
             first_name: firstName,
             last_name: lastName,
             email: faker.internet.email({
@@ -28,8 +29,8 @@ export function FormDialog(props: {
             }),
             phone: faker.helpers.fromRegExp(phonePattern),
         }
-        setContact(contact)
-    }, [])
+        setContact(newContact)
+    }, [contact])
 
     const isContactValid = useMemo(() => {
         return (
@@ -39,7 +40,7 @@ export function FormDialog(props: {
             contact.phone.match(phoneRegex) &&
             !_.isEqual(contact, props.contact)
         )
-    } ,[contact])
+    }, [contact])
 
     useEffect(() => {
         _.delay(setContact, props.open ? 0 : 200, props.contact)
@@ -50,7 +51,7 @@ export function FormDialog(props: {
     const onFormChange: ChangeEventHandler<HTMLInputElement> = useCallback(event => {
         let value = event.target.value
         const id = event.target.id
-        if (id === "first_name" || id ==="last_name")
+        if (id === "first_name" || id === "last_name")
             value = value.charAt(0).toUpperCase() + value.toLowerCase().slice(1)
         setContact(prev => ({
             ...prev,
@@ -120,7 +121,7 @@ export function FormDialog(props: {
                             onChange={onFormChange}
                         />
                     </ListItem>
-                    <ListItem sx={{justifyContent: "center"}}>
+                    <ListItem sx={{ justifyContent: "center", gap: "12px" }}>
                         <Button variant="contained" onClick={generate}>
                             Generate
                         </Button>
@@ -129,7 +130,7 @@ export function FormDialog(props: {
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button variant="contained" disabled={!isContactValid} onClick={onSubmit}>{str}</Button>
+                <Button variant="contained" disabled={!isContactValid} onClick={onSubmit}>{props.isLoading ? <CircularProgress size={20}/> : str}</Button>
             </DialogActions>
         </Dialog>
     )
@@ -140,6 +141,7 @@ export function DeleteDialog(props: {
     multiple?: boolean,
     handleClose: () => void,
     handleDelete: () => void,
+    isLoading?: boolean
 }) {
     return (
         <Dialog
@@ -156,7 +158,7 @@ export function DeleteDialog(props: {
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button variant="contained" color="error" onClick={props.handleDelete} autoFocus>Delete</Button>
+                <Button variant="contained" color="error" onClick={props.handleDelete} autoFocus>{props.isLoading ? <CircularProgress size={20}/> : "Delete"}</Button>
             </DialogActions>
         </Dialog>
     )

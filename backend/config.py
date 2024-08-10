@@ -1,18 +1,9 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from alchemical.aio import Alchemical
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///instance//addressbook.db"
+db = Alchemical("sqlite:///instance//addressbook.db")
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+word_pattern = r"^[A-Za-z]+[-']{0,1}[A-Za-z]+$"
+phone_pattern = r"^[+][1-9][\d]{0,2}-[\d]{3}-[\d]{3}-[\d]{3}$"
 
-Base = declarative_base()
-
-
-UPDATE = "/update/"
-CREATE = "/create/"
-GET = "/contacts/"
-DELETE = "/delete/"
+SINGLE = "/contact/"
+MULTIPLE = "/contacts/"

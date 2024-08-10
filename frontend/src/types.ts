@@ -13,18 +13,18 @@ export type ContactsModel = {
     total: number
 }
 
-export type OptionsModel = {
-    pagination: {
-        page_size: number,
-        page: number
-    },
-    sort?: {
-        field: string,
-        order: GridSortDirection
-    },
-    filter?: {
-        field: string,
-        operator: string,
-        values: string[] | string
-    }
-}
+export type FilterModel = {
+    filter_field: string,
+    filter_operator: string,
+    filter_values: string[]
+} | undefined
+
+export type SortModel = {
+    sort_field: string,
+    sort_order: GridSortDirection
+} | undefined
+
+export type PaginationModel = {
+    page: number,
+    page_size: number
+} | undefined

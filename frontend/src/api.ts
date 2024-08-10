@@ -1,7 +1,8 @@
-import { ContactModel, OptionsModel } from "./types";
-import { urlCreate, urlDelete, urlGet, urlUpdate } from "./constants";
+import { ContactModel, FilterModel, PaginationModel, SortModel } from "./types";
+import { urlMultiple, urlSingle } from "./constants";
+import qs from "qs";
 
-function send(url: string, type: "PATCH" | "DELETE" | "POST" | "GET", body: any) {
+async function send(url: string, type: "PATCH" | "DELETE" | "POST" | "GET", body: any) {
     const options = {
         method: type,
         headers: {
@@ -9,26 +10,47 @@ function send(url: string, type: "PATCH" | "DELETE" | "POST" | "GET", body: any)
         },
         body: JSON.stringify(body)
     }
-    console.log(JSON.stringify(body))
-    
-    return fetch(url, options)
+
+    return fetch(url, options).then(async response => {
+        if (response.status >= 400) {
+            console.error(await response.json())
+        }
+    })
+
 }
 
-export function fetchContacts(options: OptionsModel) {
-    return send(urlGet, "POST", options).then(response => response.json());
+export async function fetchContacts(sortParams: SortModel, filterParams: FilterModel, pagingationParams: PaginationModel) {
+    const query_params = {
+        ...sortParams,
+        ...filterParams,
+        ...pagingationParams,
+    }
+    const query = qs.stringify(query_params, {
+        addQueryPrefix: true,
+        arrayFormat: "repeat"
+    })
+    console.log(query)
+    return fetch(urlMultiple + query).then(async response => {
+        const data = await response.json()
+        if (response.status >= 400) {
+            console.error(data)
+        }
+        return data
+    })
 }
 
 export async function addContact(contact: ContactModel) {
-    const response = await send(urlCreate, "POST", contact);
-    return response.json();
+    return send(urlSingle, "POST", contact)
 }
 
 export async function editContact(contact: ContactModel) {
-    const response = await send(urlUpdate, "PATCH", contact);
-    return response.json();
+    return send(urlSingle + `${contact.id}`, "PATCH", contact)
 }
 
 export async function deleteContacts(ids: number[]) {
-    const response = await send(urlDelete, "DELETE", ids);
-    return response.json();
+    const query = qs.stringify({ ids }, {
+        addQueryPrefix: true,
+        arrayFormat: "repeat"
+    })
+    return send(urlMultiple + query, "DELETE", ids)
 }
