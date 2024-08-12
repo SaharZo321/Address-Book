@@ -1,10 +1,11 @@
 from copy import deepcopy
-from typing import Any, Literal, Type, get_type_hints, Optional
-from pydantic import BaseModel, EmailStr, NonNegativeInt, PositiveInt, field_validator, create_model, model_validator
-from pydantic.fields import FieldInfo
 import re
-import config
+from typing import Any, Literal, Optional, Type, get_type_hints
+from pydantic import BaseModel, EmailStr, NonNegativeInt, PositiveInt, create_model, field_validator, model_validator
+from pydantic.fields import FieldInfo
 
+word_pattern = r"^[A-Za-z]+[-']{0,1}[A-Za-z]+$"
+phone_pattern = r"^[+][1-9][\d]{0,2}-[\d]{3}-[\d]{3}-[\d]{3}$"
 
 class ContactCreateRequest(BaseModel):
     first_name: str
@@ -14,13 +15,13 @@ class ContactCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_contact(self):
-        assert bool(re.match(config.word_pattern, self.first_name)), ValueError(
+        assert bool(re.match(word_pattern, self.first_name)), ValueError(
             "first name must contain only alphabet, ' or - characters."
         )
-        assert bool(re.match(config.word_pattern, self.last_name)), ValueError(
+        assert bool(re.match(word_pattern, self.last_name)), ValueError(
             "last name must contain only alphabet, ' or - characters."
         )
-        assert bool(re.match(config.phone_pattern, self.phone)), ValueError(
+        assert bool(re.match(phone_pattern, self.phone)), ValueError(
             "phone number must be in this pattern: +###-###-###-###"
         )
         return self
@@ -51,6 +52,7 @@ def partial_model(model: Type[BaseModel]):
 class UpdateContactRequest(ContactCreateRequest):
     ()
 
+
 class ContactResponse(ContactCreateRequest):
     id: int
 
@@ -70,11 +72,13 @@ class ContactField(BaseModel):
         return value
 
 
+type SortOrders = Literal["desc", "asc"]
+
 class Sort(ContactField):
-    order: Literal["desc", "asc"]
+    order: SortOrders
 
 
-type Operators = Literal[
+type FilterOperators = Literal[
     "=",
     "<=",
     ">=",
@@ -92,7 +96,7 @@ type Operators = Literal[
 
 
 class Filter(ContactField):
-    operator: Operators
+    operator: FilterOperators
     values: list[str] = [""]
 
 
@@ -106,8 +110,6 @@ class ContactsResponse(BaseModel):
     total: NonNegativeInt
 
 
-class ErrorResponse(BaseModel):
-    detail: str
 
 class DeleteResponse(BaseModel):
     contacts: list[ContactResponse]
