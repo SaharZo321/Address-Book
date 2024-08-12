@@ -4,9 +4,10 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
+from src.contacts import contact_service
 from src.db import db_models
 from src.dependencies import get_session
-from src.contacts import crud, api_models
+from src.contacts import api_models
 from src.exc.api_models import ErrorResponse
 from src.dependencies import get_current_active_user
 
@@ -18,7 +19,7 @@ async def create_contact(
     current_user: Annotated[db_models.User, Depends(get_current_active_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    return await crud.create_contact(
+    return await contact_service.create_contact(
         session=session, contact=contact, user=current_user
     )
 
@@ -51,7 +52,7 @@ async def read_contacts(
     except ValidationError as error:
         raise HTTPException(422, detail=json.loads(error.json()))
 
-    return await crud.get_contacts(
+    return await contact_service.get_contacts(
         session=session,
         pagination=pagination,
         filter=filter,
@@ -71,7 +72,7 @@ async def read_contact(
     current_user: Annotated[db_models.User, Depends(get_current_active_user)],
 ):
     """Use this to get a certain contact with a known id."""
-    return await crud.get_contact_by_id(
+    return await contact_service.get_contact_by_id(
         session=session, contact_id=contact_id, user=current_user
     )
 
@@ -92,7 +93,7 @@ async def update_contact(
     current_user: Annotated[db_models.User, Depends(get_current_active_user)],
 ):
     """Use this to update a certain contact with a known id."""
-    return await crud.edit_contact(
+    return await contact_service.edit_contact(
         session=session, contact=contact, contact_id=contact_id, user=current_user
     )
 
@@ -112,7 +113,7 @@ async def delete_contacts(
 ):
     """Use this to delete multiple contacts."""
     return (
-        await crud.delete_contacts(session=session, ids=ids, user=current_user)
+        await contact_service.delete_contacts(session=session, ids=ids, user=current_user)
     )[0]
 
 
@@ -129,7 +130,7 @@ async def delete_contact(
 ):
     """Use this to delete a contact."""
     return api_models.DeleteResponse(
-        contacts=await crud.delete_contacts(
+        contacts=await contact_service.delete_contacts(
             session=session, ids=[contact_id], user=current_user
         )
     )

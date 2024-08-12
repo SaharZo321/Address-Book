@@ -91,4 +91,3 @@ async def activate_user(session: AsyncSession, request: api_models.ActivateUserR
     db_user.disabled = False
     await session.commit()
     await session.refresh(db_user)
-    

@@ -11,7 +11,7 @@ async def get_contact_by_id(
 ):
     contact = await session.scalar(
         select(db_models.Contact).where(
-            db_models.Contact.id == contact_id, db_models.Contact.owner_id == user.id
+            db_models.Contact.id == contact_id, db_models.Contact.owner_uuid == user.uuid
         )
     )
     if not contact:
@@ -28,7 +28,7 @@ async def get_contacts(
 ):
     selection = (
         select(db_models.Contact)
-        .where(db_models.Contact.owner_id == user.id)
+        .where(db_models.Contact.owner_uuid == user.uuid)
         .where(get_filter(filter))
         .order_by(get_sort(sort))
     )
@@ -92,7 +92,7 @@ async def create_contact(
     user: db_models.User,
 ):
     await check_unique_contact(session=session, new_contact=contact, user=user)
-    db_contact = db_models.Contact(**contact.model_dump(), owner_id=user.id)
+    db_contact = db_models.Contact(**contact.model_dump(), owner_id=user.uuid)
     session.add(db_contact)
     await session.commit()
     await session.refresh(db_contact)
@@ -106,7 +106,7 @@ async def check_unique_contact(
     exclude_id: Optional[int] = None,
 ):
     user_contacts = await session.scalars(
-        select(db_models.Contact).where(db_models.Contact.owner_id == user.id)
+        select(db_models.Contact).where(db_models.Contact.owner_uuid == user.uuid)
     )
     for contact in user_contacts:
         if exclude_id == contact.id:

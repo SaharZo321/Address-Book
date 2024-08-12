@@ -1,4 +1,5 @@
 from typing import Literal, Optional
+from uuid import UUID
 from pydantic import (
     BaseModel,
     EmailStr,
@@ -26,6 +27,7 @@ class UserResponse(BaseModel):
     display_name: str
     email: EmailStr
     disabled: bool
+    uuid: UUID
 
 
 class NewUserResponse(BaseModel):

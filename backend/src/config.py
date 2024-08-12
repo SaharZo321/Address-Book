@@ -12,4 +12,8 @@ version = "v1"
 prefix = f"/api/{version}"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{prefix}/auth/login")
 
-fastapi_app = FastAPI(lifespan=db_lifespan)
+fastapi_app = FastAPI(
+    lifespan=db_lifespan,
+    description="A REST API for an address book web service",
+    version=version,
+)
