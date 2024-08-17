@@ -16,46 +16,28 @@ class TokenResponse(BaseModel):
 password_field = Field(max_length=16, min_length=6)
 display_name_field = Field(max_length=16, min_length=3, pattern=r"^[\w]+$")
 
-
-class CreateUserRequest(BaseModel):
+class DisplayName(BaseModel):
     display_name: str = display_name_field
-    email: EmailStr
+    
+class Password(BaseModel):
     password: str = password_field
 
-
-class UserResponse(BaseModel):
-    display_name: str
+class CreateUserRequest(DisplayName, Password):
     email: EmailStr
-    disabled: bool
+
+class UserResponse(DisplayName):
+    email: EmailStr
     uuid: UUID
-
-
-class NewUserResponse(BaseModel):
-    display_name: str
-    email: EmailStr
-
 
 class ChangePasswordRequest(BaseModel):
     new_password: str = password_field
     old_password: str = password_field
     
-class ChangeDisplayNameRequest(BaseModel):
-    display_name: str = display_name_field
+class ChangeDisplayNameRequest(DisplayName):
+    pass
 
-
-class RequestPasswordResetRequest(BaseModel):
-    email: EmailStr
-    redirectUrl: str = ""
-
-
-class RequestPasswordResetResponse(BaseModel):
-    url: str
-
-
-class PasswordResetRequest(BaseModel):
+class PasswordResetRequest(Password):
     token: str
-    password: str = password_field
 
-class ActivateUserRequest(BaseModel):
-    username: EmailStr
-    password: str
+class DeactivateUserRequest(Password):
+    pass

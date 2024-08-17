@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy import Column, and_, or_, select
-from src.exc.exceptions import UniqueException, NotFoundException
+from src.exceptions import UniqueException, NotFoundException
 import src.db.db_models as db_models
 import src.contacts.api_models as api_models
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,7 @@ async def get_contact_by_id(
         )
     )
     if not contact:
-        raise NotFoundException(field_name="id", value=contact_id, object_type="Contact")
+        raise NotFoundException(field="id", value=contact_id, object_type="Contact")
     return contact
 
 
@@ -92,7 +92,7 @@ async def create_contact(
     user: db_models.User,
 ):
     await check_unique_contact(session=session, new_contact=contact, user=user)
-    db_contact = db_models.Contact(**contact.model_dump(), owner_id=user.uuid)
+    db_contact = db_models.Contact(**contact.model_dump(), owner_uuid=user.uuid)
     session.add(db_contact)
     await session.commit()
     await session.refresh(db_contact)

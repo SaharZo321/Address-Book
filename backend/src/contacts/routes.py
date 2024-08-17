@@ -4,16 +4,16 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
+from src.exceptions import NotFoundException, UniqueException
 from src.contacts import contact_service
 from src.db import db_models
 from src.dependencies import get_session
 from src.contacts import api_models
-from src.exc.api_models import ErrorResponse
 from src.dependencies import get_current_active_user
 
 contacts_router = APIRouter()
 
-@contacts_router.post("/", response_model=api_models.ContactResponse)
+@contacts_router.post("", response_model=api_models.ContactResponse)
 async def create_contact(
     contact: api_models.ContactCreateRequest,
     current_user: Annotated[db_models.User, Depends(get_current_active_user)],
@@ -30,7 +30,7 @@ def QueryField():
     )
 
 
-@contacts_router.get("/", response_model=api_models.ContactsResponse)
+@contacts_router.get("", response_model=api_models.ContactsResponse)
 async def read_contacts(
     current_user: Annotated[db_models.User, Depends(get_current_active_user)],
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -64,7 +64,7 @@ async def read_contacts(
 @contacts_router.get(
     "/{contact_id}",
     response_model=api_models.ContactResponse,
-    responses={404: {"model": ErrorResponse}},
+    responses={404: {"model": NotFoundException.Model}},
 )
 async def read_contact(
     contact_id: int,
@@ -82,8 +82,8 @@ async def read_contact(
     status_code=200,
     response_model=api_models.ContactResponse,
     responses={
-        404: {"model": ErrorResponse},
-        409: {"model": ErrorResponse},
+        404: {"model": NotFoundException.Model},
+        409: {"model": UniqueException.Model},
     },
 )
 async def update_contact(
@@ -99,10 +99,10 @@ async def update_contact(
 
 
 @contacts_router.delete(
-    "/",
+    "",
     status_code=200,
     response_model=api_models.ContactResponse,
-    responses={404: {"model": ErrorResponse}},
+    responses={404: {"model": NotFoundException.Model}},
 )
 async def delete_contacts(
     ids: Annotated[
@@ -121,7 +121,7 @@ async def delete_contacts(
     "/{contact_id}",
     status_code=200,
     response_model=api_models.DeleteResponse,
-    responses={404: {"model": ErrorResponse}},
+    responses={404: {"model": NotFoundException.Model}},
 )
 async def delete_contact(
     contact_id: str,

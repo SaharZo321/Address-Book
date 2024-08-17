@@ -1,58 +1,58 @@
 import { ChangeEventHandler, useCallback, useEffect, useMemo, useState } from "react"
-import { ContactModel } from "../types"
+import { Contact } from "../types"
 import { emailRegex, phonePattern, phoneRegex, wordRegex } from "../constants";
-import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, List, ListItem, TextField } from "@mui/material"
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, List, ListItem, TextField, Typography } from "@mui/material"
 import { faker } from '@faker-js/faker';
 import _ from "lodash";
 
+const emptyContact: Contact = { firstName: "", lastName: "", email: "", phone: "" }
 
 export function FormDialog(props: {
     open: boolean,
-    contact: ContactModel,
+    initialContact?: Contact,
     handleClose: () => void,
-    handleDoneForm: (contact: ContactModel) => void,
-    isLoading?: boolean
+    handleDoneForm: (contact: Contact) => void,
+    isPending?: boolean,
+    formError?: string,
 }) {
-
-    const [contact, setContact] = useState<ContactModel>(props.contact)
+    const initialContact = useMemo(() => {
+        return props.initialContact ? props.initialContact : emptyContact
+    }, [props.initialContact])
+    const [contact, setContact] = useState<Contact>(initialContact)
 
     const generate = useCallback(() => {
         const firstName = faker.person.firstName()
         const lastName = faker.person.lastName()
-        const newContact: ContactModel = {
-            id: contact.id,
-            first_name: firstName,
-            last_name: lastName,
+        setContact({
+            firstName,
+            lastName,
             email: faker.internet.email({
                 firstName,
                 lastName
             }),
             phone: faker.helpers.fromRegExp(phonePattern),
-        }
-        setContact(newContact)
+        })
     }, [contact])
 
     const isContactValid = useMemo(() => {
         return (
-            contact.first_name.match(wordRegex) &&
-            contact.last_name.match(wordRegex) &&
+            contact.firstName.match(wordRegex) &&
+            contact.lastName.match(wordRegex) &&
             contact.email.match(emailRegex) &&
             contact.phone.match(phoneRegex) &&
-            !_.isEqual(contact, props.contact)
+            !_.isEqual(contact, initialContact)
         )
-    }, [contact])
+    }, [contact, initialContact])
 
     useEffect(() => {
-        _.delay(setContact, props.open ? 0 : 200, props.contact)
+        _.delay(setContact, props.open ? 0 : 200, initialContact)
     }, [props.open])
 
-    const str = useMemo(() => (props.contact.id ? "Edit" : "Create"), [props.contact])
+    const str = useMemo(() => (props.initialContact ? "Edit" : "Create"), [props.initialContact])
 
     const onFormChange: ChangeEventHandler<HTMLInputElement> = useCallback(event => {
-        let value = event.target.value
-        const id = event.target.id
-        if (id === "first_name" || id === "last_name")
-            value = value.charAt(0).toUpperCase() + value.toLowerCase().slice(1)
+        const value = event.target.value
+        const id = event.target.name
         setContact(prev => ({
             ...prev,
             [id]: value
@@ -62,37 +62,47 @@ export function FormDialog(props: {
     const onSubmit = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault()
         props.handleDoneForm(contact)
-    }, [contact])
+    }, [contact, props.handleDoneForm])
 
     return (
         <Dialog
             open={props.open}
             onClose={props.handleClose}
+            maxWidth="xs"
         >
             <DialogTitle align="center">
                 {`${str} Contact`}
             </DialogTitle>
             <DialogContent>
                 <List>
+                    {
+                        props.formError &&
+                        <ListItem>
+                            <Typography color="error" textAlign="center" width="100%">
+                                {props.formError}
+                            </Typography>
+                        </ListItem>
+                    }
                     <ListItem>
                         <TextField
-                            error={!contact.first_name.match(wordRegex)}
-                            autoFocus
+                            error={!contact.firstName.match(wordRegex)}
                             required
-                            id="first_name"
+                            id="contact-form first-name"
+                            name="firstName"
                             label="First name"
-                            value={contact.first_name}
+                            value={contact.firstName}
                             fullWidth
                             onChange={onFormChange}
                         />
                     </ListItem>
                     <ListItem>
                         <TextField
-                            error={!contact.last_name.match(wordRegex)}
+                            error={!contact.lastName.match(wordRegex)}
                             required
-                            id="last_name"
+                            name="lastName"
+                            id="contact-form last-name"
                             label="Last name"
-                            value={contact.last_name}
+                            value={contact.lastName}
                             fullWidth
                             onChange={onFormChange}
                         />
@@ -101,7 +111,8 @@ export function FormDialog(props: {
                         <TextField
                             error={!contact.email.match(emailRegex)}
                             required
-                            id="email"
+                            id="contact-form email"
+                            name="email"
                             label="Email"
                             value={contact.email}
                             type="email"
@@ -113,7 +124,8 @@ export function FormDialog(props: {
                         <TextField
                             error={!contact.phone.match(phoneRegex)}
                             required
-                            id="phone"
+                            name="phone"
+                            id="contact-form phone"
                             label="Phone"
                             value={contact.phone}
                             type="tel"
@@ -130,7 +142,7 @@ export function FormDialog(props: {
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button variant="contained" disabled={!isContactValid} onClick={onSubmit}>{props.isLoading ? <CircularProgress size={20}/> : str}</Button>
+                <Button variant="contained" disabled={!isContactValid} onClick={onSubmit}>{props.isPending ? <CircularProgress size={20} /> : str}</Button>
             </DialogActions>
         </Dialog>
     )
@@ -141,7 +153,7 @@ export function DeleteDialog(props: {
     multiple?: boolean,
     handleClose: () => void,
     handleDelete: () => void,
-    isLoading?: boolean
+    isPending?: boolean
 }) {
     return (
         <Dialog
@@ -158,7 +170,7 @@ export function DeleteDialog(props: {
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button variant="contained" color="error" onClick={props.handleDelete} autoFocus>{props.isLoading ? <CircularProgress size={20}/> : "Delete"}</Button>
+                <Button variant="contained" color="error" onClick={props.handleDelete}>{props.isPending ? <CircularProgress size={20} /> : "Delete"}</Button>
             </DialogActions>
         </Dialog>
     )

@@ -1,130 +1,130 @@
 import { Button, List, ListItem, SxProps } from "@mui/material";
-import { ContactModel, ContactsModel, FilterModel, SortModel, PaginationModel } from "../types";
+import { ContactResponse, ContactWithID, Contact, ContactsModel, ContactsModelResponse, ContactsOptions } from "../types";
 import { DataGrid, GridActionsCellItem, GridColDef, GridFilterModel, GridPagination, GridPaginationModel, GridRowParams, GridRowSelectionModel, GridSlotProps, GridSortModel } from '@mui/x-data-grid';
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Add, Delete, Edit } from "@mui/icons-material";
 import { DeleteDialog, FormDialog } from "./Dialogs";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addContact, deleteContacts, editContact, fetchContacts } from "../api";
-import * as changeCase from "change-case";
+import { useContactAPIContext } from "../Contexts/ContactAPIContext";
+import _ from "lodash";
 
-const emptyContact: ContactModel = { id: 0, first_name: "", last_name: "", email: "", phone: "" }
 const initialPaginationModel: GridPaginationModel = { page: 0, pageSize: 10 }
 
 export default function ContactTable(props: { sx?: SxProps }) {
 
     const [modals, setModals] = useState({ delete: false, form: false })
     const [selectedContacts, setSelectedContacts] = useState<GridRowSelectionModel>([])
-    const [clickedContact, setClickedContact] = useState<ContactModel>(emptyContact)
-    const [paginationModel, setPaginationModel] = useState<GridPaginationModel>(initialPaginationModel)
-    const [filterModel, setFilterModel] = useState<GridFilterModel>()
-    const [sortModel, setSortModel] = useState<GridSortModel>([])
-    const queryClient = useQueryClient()
+    const [clickedContact, setClickedContact] = useState<ContactWithID>()
 
-    const { data: contactsModel, isLoading, error } = useQuery<ContactsModel>({
-        queryKey: ["contacts", paginationModel, filterModel, sortModel],
-        queryFn: () => {
-            const fm: FilterModel = filterModel?.items[0] ? {
-                filter_field: filterModel.items[0].field,
-                filter_values: (
+
+    const {
+        contactsModel,
+        isPending: isFetching,
+        // readContactMutation: { mutateAsync: readContact, isReadContactPending },
+        deleteContactMutation: { mutateAsync: deleteContact, isPending: isDeleteContactPending },
+        editContactMutation: { mutateAsync: editContact, isPending: isEditContactPending },
+        createContactMutation: { mutateAsync: createContact, isPending: isCreateContactPending },
+        deleteContactsMutation: { mutateAsync: deleteContacts, isPending: isDeleteContactsPending },
+        setOptions,
+    } = useContactAPIContext()
+
+    useEffect(() => {
+        setOptions({
+            pagination: initialPaginationModel
+        })
+    } ,[])
+
+    const setFilterModel = useCallback((filterModel: GridFilterModel) => {
+        if (!filterModel.items[0] || !filterModel.items[0].value) {
+            setOptions(prev => ({
+                ...prev,
+                filter: undefined
+            }))
+            return
+        }
+        setOptions(prev => ({
+            ...prev,
+            filter: {
+                field: _.snakeCase(filterModel.items[0].field),
+                operator: (
+                    filterModel.items[0].operator.match(/[\w]+/) ?
+                        _.snakeCase(filterModel.items[0].operator) :
+                        filterModel.items[0].operator
+                ),
+                values: (
                     typeof filterModel.items[0].value == "string" ?
                         [filterModel.items[0].value] :
                         filterModel.items[0].value
-                ),
-                filter_operator: (
-                    filterModel.items[0].operator.match(/[\w]+/) ?
-                        changeCase.snakeCase(filterModel.items[0].operator) :
-                        filterModel.items[0].operator)
-            } : undefined
-
-            const pm: PaginationModel = {
-                page_size: paginationModel.pageSize,
-                page: paginationModel.page
+                )
             }
+        }))
+    }, [])
 
-            const sm: SortModel = sortModel[0] ? {
-                sort_field: sortModel[0].field,
-                sort_order: sortModel[0].sort
-            } : undefined
-            closeModals()
-            return fetchContacts(sm, fm, pm)
-        },
-    })
+    const setSortModel = useCallback((sortModel: GridSortModel) => {
+        if (!sortModel[0]) return
+        setOptions(prev => ({
+            ...prev,
+            sort: {
+                field: _.snakeCase(sortModel[0].field),
+                order: sortModel[0].sort
+            }
+        }))
+    }, [])
 
-    if (error) {
-        console.error(error.message)
-    }
-
-    const { mutateAsync: addContactsMutation, isPending: isAddPending } = useMutation({
-        mutationFn: addContact,
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["contacts"]
-            })
-        }
-    })
-
-    const { mutateAsync: editContactMutation, isPending: isEditPending } = useMutation({
-        mutationFn: editContact,
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["contacts"]
-            })
-        },
-    })
-
-    const { mutateAsync: deleteContactsMutation, isPending: isDeletePending } = useMutation({
-        mutationFn: deleteContacts,
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["contacts"]
-            })
-        },
-    })
+    const setPaginationModel = useCallback((paginationModel: GridPaginationModel) => {
+        setOptions(prev => ({
+            ...prev,
+            pagination: paginationModel
+        }))
+    }, [])
 
     const closeModals = useCallback(() => {
         setModals({ delete: false, form: false })
-        setClickedContact(emptyContact)
+        setClickedContact(undefined)
     }, [])
 
-    const onEditClick = useCallback((contact: ContactModel) => {
+    const onEditClick = useCallback((contact: ContactWithID) => {
         setClickedContact(contact)
         setModals(prev => ({ ...prev, form: true }))
     }, [])
 
     const onAddClick = useCallback(() => {
-        setClickedContact(emptyContact)
+        setClickedContact(undefined)
         setModals(prev => ({ ...prev, form: true }))
     }, [])
 
-    const onDeleteClick = useCallback((contact: ContactModel) => {
+    const onDeleteClick = useCallback((contact: ContactWithID) => {
         setClickedContact(contact)
         setModals(prev => ({ ...prev, delete: true }))
     }, [])
 
     const onDeleteSelectionClick = useCallback(() => {
-        setClickedContact(emptyContact)
+        setClickedContact(undefined)
         setModals(prev => ({ ...prev, delete: true }))
     }, [])
 
-    const handleDoneForm = useCallback(async (contact: ContactModel) => {
-        if (clickedContact.id) {
-            await editContactMutation(contact)
+    const handleDoneForm = useCallback(async (contact: Contact) => {
+        if (clickedContact) {
+            await editContact({ contact: { ...contact, id: clickedContact.id } })
         } else {
-            await addContactsMutation(contact)
+            await createContact({ contact })
         }
-    }, [clickedContact])
+        closeModals()
+    }, [clickedContact, editContact, createContact])
 
-    const handleDeleteClick = useCallback(async () => {
-        await deleteContactsMutation(
-            clickedContact.id ? [clickedContact.id] : selectedContacts.map(id => Number(id))
-        )
-        setSelectedContacts(prev => selectedContacts.filter(id => !prev.includes(id)))
-    }, [clickedContact, selectedContacts])
+    const handleDelete = useCallback(async () => {
+        if (clickedContact) {
+            await deleteContact({ id: clickedContact.id })
+            setSelectedContacts(prev => prev.filter(id => id !== clickedContact.id))
+        } else if (selectedContacts) {
+            await deleteContacts({ ids: selectedContacts.map(id => Number(id)) })
+            setSelectedContacts([])
+        }
+        closeModals()
+    }, [clickedContact, selectedContacts, deleteContact, deleteContacts])
 
     const columns: GridColDef[] = useMemo(() => [
         {
-            field: "actions", type: "actions", getActions: (grid: GridRowParams<ContactModel>) => (
+            field: "actions", type: "actions", getActions: (grid: GridRowParams<ContactWithID>) => (
                 [
                     <GridActionsCellItem
                         icon={<Delete />}
@@ -140,9 +140,8 @@ export default function ContactTable(props: { sx?: SxProps }) {
             ),
             width: 70,
         },
-        { field: 'id', headerName: 'ID', type: "number", width: 50 },
-        { field: 'first_name', headerName: 'First name', width: 100 },
-        { field: 'last_name', headerName: 'Last name', width: 130 },
+        { field: 'firstName', headerName: 'First name', width: 100 },
+        { field: 'lastName', headerName: 'Last name', width: 130 },
         { field: 'email', headerName: 'Email', width: 220 },
         { field: 'phone', headerName: 'Phone', width: 140 },
         {
@@ -152,16 +151,17 @@ export default function ContactTable(props: { sx?: SxProps }) {
             sortable: false,
             width: 160,
             filterable: false,
-            valueGetter: (_, contact: ContactModel) => `${contact.first_name || ''} ${contact.last_name || ''}`,
+            valueGetter: (_, contact: Contact) => `${contact.firstName || ''} ${contact.lastName || ''}`,
 
         },
     ], [])
 
     const CustomRowCount = useCallback((props: GridSlotProps["pagination"]) => {
+        
         return (
             <>
                 {
-                    Boolean(selectedContacts.length) ?
+                    selectedContacts.length ?
                         <Button
                             variant="contained"
                             color="error"
@@ -177,7 +177,7 @@ export default function ContactTable(props: { sx?: SxProps }) {
                             onClick={onAddClick}
                             sx={{
                                 marginRight: "auto",
-                                marginLeft: "8px",
+                                marginLeft: "16px",
                             }}
                         >
                             <Add />
@@ -186,12 +186,14 @@ export default function ContactTable(props: { sx?: SxProps }) {
                 <GridPagination {...props} />
             </>
         )
-    }, [selectedContacts.length, onDeleteSelectionClick])
+    }, [selectedContacts.length, onDeleteSelectionClick, onAddClick])
 
-    const rowCountRef = useRef(contactsModel?.total || 0);
+    const rowCountRef = useRef(0);
 
     const rowCount = useMemo(() => {
-        rowCountRef.current = contactsModel ? contactsModel.total : rowCountRef.current;
+        if (contactsModel) {
+            rowCountRef.current = contactsModel.total
+        }
         return rowCountRef.current;
     }, [contactsModel?.total])
 
@@ -216,7 +218,7 @@ export default function ContactTable(props: { sx?: SxProps }) {
                         sx={props.sx}
                         onRowSelectionModelChange={setSelectedContacts}
                         rowSelectionModel={selectedContacts}
-                        loading={isLoading}
+                        loading={isFetching}
                         slots={{
                             pagination: CustomRowCount
                         }}
@@ -231,16 +233,16 @@ export default function ContactTable(props: { sx?: SxProps }) {
             <DeleteDialog
                 open={modals.delete}
                 handleClose={closeModals}
-                handleDelete={handleDeleteClick}
-                multiple={clickedContact.id ? false : selectedContacts.length > 1}
-                isLoading={isDeletePending || isLoading}
+                handleDelete={handleDelete}
+                multiple={clickedContact ? false : selectedContacts.length > 1}
+                isPending={isDeleteContactsPending || isFetching || isDeleteContactPending}
             />
             <FormDialog
                 open={modals.form}
                 handleClose={closeModals}
                 handleDoneForm={handleDoneForm}
-                contact={clickedContact}
-                isLoading={isAddPending || isEditPending || isLoading}
+                initialContact={clickedContact}
+                isPending={isCreateContactPending || isFetching || isEditContactPending}
             />
         </>
     )

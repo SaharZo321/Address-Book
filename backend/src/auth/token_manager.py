@@ -1,10 +1,11 @@
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPBearer
 import jwt
 from pydantic import BaseModel, ValidationError
+from src.exceptions import InvalidTokenException
 import src.auth.api_models as api_models
 import src.db.db_models as db_models
 import logging
@@ -49,32 +50,9 @@ def create_refresh_token(
     )
     return encoded_jwt
 
-
-def decode_access_token(token: str):
-    try:
-        payload = JwtPayload(
-            **jwt.decode(token, ACCESS_SECRET_KEY, algorithms=[ALGORITHM])
-        )
-        return payload
-    except jwt.PyJWTError or ValidationError as error:
-        logging.exception(error)
-        return None
-
-
-def decode_refresh_token(token: str):
-    try:
-        payload = JwtPayload(
-            **jwt.decode(token, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
-        )
-        return payload
-    except jwt.PyJWTError or ValidationError as error:
-        logging.exception(error)
-        return None
-
-
-def create_tokens(user: db_models.User):
-    access = create_access_token(sub=user.email)
-    refresh = create_refresh_token(sub=user.email)
+def create_tokens(email: str):
+    access = create_access_token(sub=email)
+    refresh = create_refresh_token(sub=email)
     return api_models.TokenResponse(access_token=access, refresh_token=refresh)
 
 class TokenBearerResult(BaseModel):
@@ -103,10 +81,7 @@ class TokenBearer(HTTPBearer):
             return payload
         except jwt.PyJWTError or ValidationError as error:
             logging.exception(error)
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid or expired token"
-            )
+            raise InvalidTokenException
             
     @abstractmethod
     def verify_payload(self, payload: JwtPayload):
