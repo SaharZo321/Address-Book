@@ -5,7 +5,7 @@ export const server_url = "http://localhost:8000"
 const version = "v1"
 const prefix = `/api/${version}`
 export const contacts_url = server_url + prefix + "/contacts"
-export const auth_url = server_url + prefix + "/auth"
+export const auth_url = server_url + prefix + "/users"
 
 const contactsInstance = (accessToken: string) => axios.create({
     baseURL: contacts_url,
@@ -15,10 +15,10 @@ const contactsInstance = (accessToken: string) => axios.create({
     paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" })
 })
 
-const userInstance = (accessToken: string) => axios.create({
+const userInstance = (token: string) => axios.create({
     baseURL: auth_url,
     headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
     }
 })
 
@@ -115,40 +115,44 @@ export async function getConnectedUserAPI(accessToken: string) {
     return userInstance(accessToken).get("/me")
 }
 
-export async function changePasswordAPI(variables: { accessToken: string, oldPassword: string, newPassword: string }) {
-    const { accessToken, oldPassword: old_password, newPassword: new_password } = variables
-    const body = {
-        old_password,
-        new_password,
-    }
-    return userInstance(accessToken).patch("/change-password", body)
-}
-
 export async function changeDisplayNameAPI(variables: { accessToken: string, displayName: string }) {
     const { accessToken, displayName: display_name } = variables
     const body = {
         display_name
     }
-    console.log(body)
     return userInstance(accessToken).patch("/display-name", body)
+    
+}
 
+export async function changePasswordAPI(variables: { securityToken: string, password: string }) {
+    const { securityToken, password } = variables
+    const body = {
+        password
+    }
+    return userInstance(securityToken).patch("/change-password", body)
 }
 
 export async function logoutAPI(accessToken: string) {
     return userInstance(accessToken).post("/logout")
 }
 
-export async function deactivateUserAPI(variables: { accessToken: string, password: string }) {
-    const { accessToken, password } = variables
-    const body = {
-        password
-    }
-    return userInstance(accessToken).post("/deactivate", body)
+export async function deactivateUserAPI(variables: { securityToken: string }) {
+    const { securityToken } = variables
+    
+    return userInstance(securityToken).post("/deactivate")
 
 }
 
 export async function refreshTokenAPI(refreshToken: string) {
     return userInstance(refreshToken).get("/refresh-token")
+}
+
+export async function verifyPasswordAPI(vars: { accessToken: string, password: string }) {
+    const { accessToken, password } = vars
+    const body = {
+        password
+    }
+    return userInstance(accessToken).post("/security-token", body)
 }
 
 

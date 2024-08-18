@@ -1,7 +1,7 @@
 import { useCookies } from "react-cookie"
-import { createContext, PropsWithChildren, useCallback } from "react";
-import { MutationFunction, UseMutateAsyncFunction, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { changeDisplayNameAPI, getConnectedUserAPI, loginAPI, logoutAPI, refreshTokenAPI, registerAPI } from "../api";
+import { createContext, PropsWithChildren, useCallback, useContext } from "react";
+import { MutationFunction, UseMutateAsyncFunction, useMutation, UseMutationResult, useQuery, useQueryClient } from "@tanstack/react-query";
+import { changeDisplayNameAPI, changePasswordAPI, deactivateUserAPI, getConnectedUserAPI, loginAPI, logoutAPI, refreshTokenAPI, registerAPI, verifyPasswordAPI } from "../api";
 import { TokensResponse, User, UserCreateRequest, UserResponse } from "../types";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import useTokensCookies, { Tokens } from "../hooks/useTokensCookies";
@@ -10,30 +10,34 @@ import { useLocation } from "react-router-dom";
 type LoginProps = { email: string, password: string }
 type CreateUserProps = { email: string, displayName: string, password: string }
 type ChangeDisplayNameProps = { displayName: string }
+type PasswordProps = { password: string }
 
-type UserAPIContext = {
+export type UserAPIContext = {
     user?: User | null,
     accessToken?: string
-    login: UseMutateAsyncFunction<AxiosResponse, AxiosError<any>, LoginProps>,
-    logout: UseMutateAsyncFunction<AxiosResponse | void, AxiosError<any>>,
-    createUser: UseMutateAsyncFunction<AxiosResponse, AxiosError<any>, CreateUserProps>,
-    changeDisplayName: UseMutateAsyncFunction<AxiosResponse | void, AxiosError<any>, ChangeDisplayNameProps>,
+    login: UseMutationResult<AxiosResponse, AxiosError<any>, LoginProps>,
+    logout: UseMutationResult<AxiosResponse, AxiosError<any>, void>,
+    createUser: UseMutationResult<AxiosResponse, AxiosError<any>, CreateUserProps>,
+    changeDisplayName: UseMutationResult<AxiosResponse, AxiosError<any>, ChangeDisplayNameProps>,
+    verifyPassword: UseMutationResult<AxiosResponse, AxiosError<any>, PasswordProps>,
+    changePassword: UseMutationResult<AxiosResponse, AxiosError<any>, PasswordProps>,
+    deactivateUser: UseMutationResult<AxiosResponse, AxiosError<any>, void>,
 }
 
-const emptyAxiosResponse = axios.get("")
+const UserAPIContext = createContext<UserAPIContext | undefined>(undefined)
 
-export const UserAPIContext = createContext<UserAPIContext>({
-    user: null,
-    login: () => emptyAxiosResponse,
-    logout: () => emptyAxiosResponse,
-    createUser: () => emptyAxiosResponse,
-    changeDisplayName: () => emptyAxiosResponse,
-})
+export const useUserAPIContext = () => {
+    const context = useContext(UserAPIContext)
+    if (!context) {
+        throw new Error("useContactAPIContext must be used within a ContactAPIProvider")
+    }
+    return context
+}
 
 export function UserAPIProvider(props: PropsWithChildren<{ onLogout?: () => void, onLogin?: () => void }>) {
     const queryClient = useQueryClient()
 
-    const { tokens: { accessToken, refreshToken }, setTokens, clearTokens } = useTokensCookies()
+    const { tokens, setTokens, clearTokens } = useTokensCookies()
 
     const updateTokens = useCallback(async (refreshToken: string) => {
         const result = await refreshTokenAPI(refreshToken).then(
@@ -56,20 +60,19 @@ export function UserAPIProvider(props: PropsWithChildren<{ onLogout?: () => void
     }, [])
 
     const { data: currentUser } = useQuery<User | null>({
-        queryKey: ["user", accessToken],
+        queryKey: ["user", tokens?.accessToken],
         queryFn: async () => {
-            console.log("tried again")
-            if (!accessToken) {
-                if (refreshToken) {
+            if (!tokens?.accessToken) {
+                if (tokens?.refreshToken) {
                     console.error("No access token, trying to get refresh token")
-                    await updateTokens(refreshToken)
+                    await updateTokens(tokens.refreshToken)
                 } else {
                     console.error("No tokens")
                     props.onLogout?.()
                 }
                 return null
             }
-            const newUser = await getConnectedUserAPI(accessToken).then(async response => {
+            const newUser = await getConnectedUserAPI(tokens.accessToken).then(async response => {
                 const { email, display_name: displayName, uuid }: UserResponse = response.data
                 const user: User = { email, displayName, uuid }
                 console.log(user)
@@ -81,9 +84,9 @@ export function UserAPIProvider(props: PropsWithChildren<{ onLogout?: () => void
                 if (!error.response) {
                     console.error("server timed out, got no response")
                 }
-                if (refreshToken) {
+                if (tokens?.refreshToken) {
                     console.error("access token is invalid, trying to get refresh token")
-                    await updateTokens(refreshToken)
+                    await updateTokens(tokens.refreshToken)
                 } else {
                     console.error("access token is invalid, no refresh token")
                     props.onLogout?.()
@@ -94,15 +97,11 @@ export function UserAPIProvider(props: PropsWithChildren<{ onLogout?: () => void
         },
     })
 
-    const onMutationSuccess = useCallback(() => {
+    const invalidateUser = useCallback(() => {
         queryClient.invalidateQueries({ queryKey: ["user"] })
     }, [])
 
-    const onMutationError = useCallback(() => {
-        queryClient.invalidateQueries({ queryKey: ["user"] })
-    }, [])
-
-    const { mutateAsync: login } = useMutation<AxiosResponse, AxiosError, LoginProps>({
+    const loginMutaion = useMutation<AxiosResponse, AxiosError, LoginProps>({
         mutationFn: loginAPI,
         onSuccess: (response) => {
             const tokensResponse: TokensResponse = response.data
@@ -114,40 +113,86 @@ export function UserAPIProvider(props: PropsWithChildren<{ onLogout?: () => void
         }
     })
 
-    const { mutateAsync: logout } = useMutation<AxiosResponse | void, AxiosError>({
+    const logoutMutation = useMutation<AxiosResponse, AxiosError, void>({
         mutationFn: async () => {
-            if (accessToken)
-                return logoutAPI(accessToken)
+            if (!tokens?.accessToken) {
+                throw new Error("No access token")
+            }
+            return logoutAPI(tokens.accessToken)
         },
         onSuccess: () => {
             clearTokens()
         },
-        onError: onMutationError,
+        onError: invalidateUser,
     })
 
-    const { mutateAsync: changeDisplayName } = useMutation<AxiosResponse | void, AxiosError, ChangeDisplayNameProps>({
+    const changeDisplayNameMutation = useMutation<AxiosResponse, AxiosError, ChangeDisplayNameProps>({
         mutationFn: async ({ displayName }) => {
-            if (accessToken)
-                return changeDisplayNameAPI({ accessToken, displayName })
+            if (!tokens?.accessToken) {
+                throw new Error("No access token")
+            }
+            return changeDisplayNameAPI({ accessToken: tokens.accessToken, displayName })
         },
-        onSuccess: onMutationSuccess,
-        onError: onMutationError,
+        onSuccess: invalidateUser,
+        onError: invalidateUser,
     })
 
-    const { mutateAsync: createUser } = useMutation<AxiosResponse, AxiosError, CreateUserProps>({
+    const createUserMutation = useMutation<AxiosResponse, AxiosError, CreateUserProps>({
         mutationFn: registerAPI,
     })
 
+    const verifyPasswordMutation = useMutation<AxiosResponse, AxiosError, PasswordProps>({
+        mutationFn: async ({ password }) => {
+            if (!tokens?.accessToken) {
+                throw new Error("No access token")
+            }
+            return verifyPasswordAPI({ accessToken: tokens.accessToken, password })
+        },
+        onSuccess: response => {
+            setTokens({
+                securityToken: response.data.security_token
+            })
+        },
+        onError: error => {
+            if (error.response?.status === 403) {
+                invalidateUser()
+            }
+        }
+    })
+
+    const changePasswordMutation = useMutation<AxiosResponse, AxiosError, PasswordProps>({
+        mutationFn: async ({ password }) => {
+            if (!tokens?.securityToken) {
+                throw new Error("No security token")
+            }
+            return changePasswordAPI({ securityToken: tokens.securityToken, password })
+        },
+        onSuccess: invalidateUser
+    })
+
+    const deactivateUserMutation = useMutation<AxiosResponse, AxiosError, void>({
+        mutationFn: async () => {
+            if (!tokens?.securityToken) {
+                throw new Error("No security token")
+            }
+            return deactivateUserAPI({ securityToken: tokens.securityToken })
+        },
+        onError: invalidateUser,
+        onSuccess: invalidateUser
+    })
 
 
     return (
         <UserAPIContext.Provider value={{
             user: currentUser,
-            accessToken,
-            login,
-            logout,
-            createUser,
-            changeDisplayName,
+            accessToken: tokens?.accessToken,
+            login: loginMutaion,
+            logout: logoutMutation,
+            createUser: createUserMutation,
+            changeDisplayName: changeDisplayNameMutation,
+            verifyPassword: verifyPasswordMutation,
+            changePassword: changePasswordMutation,
+            deactivateUser: deactivateUserMutation,
         }}>
             {props.children}
         </UserAPIContext.Provider>

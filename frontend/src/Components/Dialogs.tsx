@@ -4,6 +4,7 @@ import { emailRegex, phonePattern, phoneRegex, wordRegex } from "../constants";
 import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, List, ListItem, TextField, Typography } from "@mui/material"
 import { faker } from '@faker-js/faker';
 import _ from "lodash";
+import PendingButton from "./PendingButton";
 
 const emptyContact: Contact = { firstName: "", lastName: "", email: "", phone: "" }
 
@@ -142,7 +143,17 @@ export function FormDialog(props: {
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button variant="contained" disabled={!isContactValid} onClick={onSubmit}>{props.isPending ? <CircularProgress size={20} /> : str}</Button>
+                <PendingButton
+                    variant="contained"
+                    disabled={!isContactValid}
+                    onClick={onSubmit}
+                    isPending={props.isPending}
+                    progressProps={{
+                        size: 24,
+                    }}
+                >
+                    {str}
+                </PendingButton>
             </DialogActions>
         </Dialog>
     )
@@ -170,7 +181,18 @@ export function DeleteDialog(props: {
             </DialogContent>
             <DialogActions>
                 <Button onClick={props.handleClose}>Cancel</Button>
-                <Button variant="contained" color="error" onClick={props.handleDelete}>{props.isPending ? <CircularProgress size={20} /> : "Delete"}</Button>
+                <PendingButton
+                    variant="contained"
+                    color="error"
+                    onClick={props.handleDelete}
+                    isPending={props.isPending}
+                    progressProps={{
+                        size: 24,
+                        color: "error"
+                    }}
+                >
+                    Delete
+                </PendingButton>
             </DialogActions>
         </Dialog>
     )

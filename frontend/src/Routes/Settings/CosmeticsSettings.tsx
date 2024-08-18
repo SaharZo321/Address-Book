@@ -1,27 +1,52 @@
 import { Badge } from "@mui/icons-material"
 import { useCallback, useContext, useMemo, useState } from "react";
 import SettingsContent from "./CategoryItem";
-import OneFieldDialog from "../../Components/OneFieldDialog";
+import OneFieldDialog, { OneFieldDialogProps } from "../../Components/OneFieldDialog";
 import { displayNameRegex } from "../../constants";
-import { UserAPIContext } from "../../Contexts/UserAPIContext";
+import { useUserAPIContext } from "../../Contexts/UserAPIContext";
 
 export default function CosmeticsSettings() {
 
-    const [openDialog, setOpenDialog] = useState<"displayName">()
-
-    const items: { text: string, onClick: () => void, icon: JSX.Element }[] = useMemo(() => [
-        { text: "Change display name", onClick: () => setOpenDialog("displayName"), icon: <Badge /> },
-    ], [])
-
-    const { user, changeDisplayName: changeDisplayNameContext } = useContext(UserAPIContext)
+    const [dialogProps, setDialogProps] = useState<OneFieldDialogProps>({ open: false })
 
     const closeDialog = useCallback(() => {
-        setOpenDialog(undefined)
+        setDialogProps({ open: false })
     }, [])
 
-    const changeDisplayName = useCallback(async (name: string) => {
-        await changeDisplayNameContext({ displayName: name })
-    }, [])
+    const {
+        user,
+        changeDisplayName: {
+            mutateAsync: changeDisplayName,
+            isPending: isChangeDisplayNamePending
+        }
+    } = useUserAPIContext()
+
+    const items: { text: string, onClick: () => void, icon: JSX.Element }[] = useMemo(() => [
+        {
+            text: "Change display name",
+            onClick: () => setDialogProps({
+                onClose: closeDialog,
+                open: true,
+                title: "New Display Name",
+                error: (value) => !value.match(displayNameRegex),
+                textFieldProps: {
+                    placeholder: user?.displayName
+                },
+                onOk: handleChangeDisplayName,
+                isPending: isChangeDisplayNamePending,
+            }),
+            icon: <Badge />
+        },
+    ], [isChangeDisplayNamePending])
+
+
+    const handleChangeDisplayName = useCallback(async (name: string) => {
+        await changeDisplayName({ displayName: name }, {
+            onSuccess: () => {
+                closeDialog()
+            }
+        })
+    }, [changeDisplayName])
 
     return (
         <>
@@ -30,12 +55,7 @@ export default function CosmeticsSettings() {
                 summary="This is an example category summary to edit your account cosmetics."
             />
             <OneFieldDialog
-                handleClose={closeDialog}
-                open={openDialog === "displayName"}
-                title="New Display Name"
-                fieldError={(value) => !value.match(displayNameRegex)}
-                fieldPlaceholder={user?.displayName}
-                handleOk={changeDisplayName}
+                {...dialogProps}
             />
         </>
     )

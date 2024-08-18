@@ -29,15 +29,14 @@ class UserResponse(DisplayName):
     email: EmailStr
     uuid: UUID
 
-class ChangePasswordRequest(BaseModel):
-    new_password: str = password_field
-    old_password: str = password_field
+class ChangePasswordRequest(Password):
+    pass
     
 class ChangeDisplayNameRequest(DisplayName):
     pass
 
-class PasswordResetRequest(Password):
-    token: str
-
-class DeactivateUserRequest(Password):
+class VerifyPasswordRequest(Password):
     pass
+
+class VerifyPasswordResponse(BaseModel):
+    security_token: str

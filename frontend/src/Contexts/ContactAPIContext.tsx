@@ -2,10 +2,8 @@ import { useMutation, UseMutationResult, useQuery, useQueryClient } from "@tanst
 import useTokensCookies from "../hooks/useTokensCookies"
 import { Contact, ContactsModel, ContactsModelResponse, ContactsOptions, ContactWithID } from "../types"
 import { createContactAPI, deleteContactAPI, deleteContactsAPI, editContactAPI, fetchContactAPI, fetchContactsAPI } from "../api"
-import { createContext, Dispatch, PropsWithChildren, SetStateAction, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, Dispatch, PropsWithChildren, SetStateAction, useCallback, useContext, useState } from "react"
 import { AxiosError, AxiosResponse } from "axios"
-import { useSearchParams } from "react-router-dom"
-import qs from "qs"
 
 
 
@@ -31,21 +29,21 @@ export const useContactAPIContext = () => {
 }
 
 export default function ContactAPIProvider(props: PropsWithChildren) {
-    const { tokens: { accessToken } } = useTokensCookies()
+    const { tokens } = useTokensCookies()
 
     const queryClient = useQueryClient()
 
     const [options, setOptions] = useState<ContactsOptions>({})
 
     const { data: contactsModel, isPending } = useQuery<ContactsModel>({
-        queryKey: ["contacts", options, accessToken],
+        queryKey: ["contacts", options, tokens?.accessToken],
         queryFn: async () => {
-            if (!accessToken) {
+            if (!tokens?.accessToken) {
                 throw new Error("No access token")
             }
             const response = await fetchContactsAPI({
                 options,
-                accessToken,
+                accessToken: tokens.accessToken,
             })
             const contactsModelResponse: ContactsModelResponse = response.data
             return {
@@ -67,50 +65,50 @@ export default function ContactAPIProvider(props: PropsWithChildren) {
 
     const readContactMutation = useMutation<AxiosResponse, AxiosError<any>, { id: number }>({
         mutationFn: async (vars) => {
-            if (!accessToken) {
+            if (!tokens?.accessToken) {
                 throw new Error("No access token")
             }
-            return await fetchContactAPI({ ...vars, accessToken })
+            return await fetchContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
         onSuccess: onMutationSuccess
     })
 
     const deleteContactMutation = useMutation<AxiosResponse, AxiosError<any>, { id: number }>({
         mutationFn: async (vars) => {
-            if (!accessToken) {
+            if (!tokens?.accessToken) {
                 throw new Error("No access token")
             }
-            return await deleteContactAPI({ ...vars, accessToken })
+            return await deleteContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
         onSuccess: onMutationSuccess
     })
 
     const editContactMutation = useMutation<AxiosResponse, AxiosError<any>, { contact: ContactWithID }>({
         mutationFn: async (vars) => {
-            if (!accessToken) {
+            if (!tokens?.accessToken) {
                 throw new Error("No access token")
             }
-            return await editContactAPI({ ...vars, accessToken })
+            return await editContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
         onSuccess: onMutationSuccess
     })
 
     const createContactMutation = useMutation<AxiosResponse, AxiosError<any>, { contact: Contact }>({
         mutationFn: async (vars) => {
-            if (!accessToken) {
+            if (!tokens?.accessToken) {
                 throw new Error("No access token")
             }
-            return await createContactAPI({ ...vars, accessToken })
+            return await createContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
         onSuccess: onMutationSuccess
     })
 
     const deleteContactsMutation = useMutation<AxiosResponse, AxiosError<any>, { ids: number[] }>({
         mutationFn: async (vars) => {
-            if (!accessToken) {
+            if (!tokens?.accessToken) {
                 throw new Error("No access token")
             }
-            return await deleteContactsAPI({ ...vars, accessToken })
+            return await deleteContactsAPI({ ...vars, accessToken: tokens.accessToken })
         },
         onSuccess: onMutationSuccess
     })

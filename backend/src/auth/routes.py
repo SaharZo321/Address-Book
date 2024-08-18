@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter
 from typing import Annotated, Union
 from fastapi import Depends, status
@@ -32,7 +33,7 @@ auth_router = APIRouter()
     },
 )
 async def read_users_me(
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)]
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))]
 ):
     return current_user
 
@@ -76,17 +77,18 @@ async def create_user(
     "/change-password",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        400: {"model": IncorrectPasswordException.Model},
         403: {"model": AllForbidenExceptionModels},
     },
 )
 async def change_password(
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[
+        db_models.User, Depends(get_current_active_user("security"))
+    ],
     request: api_models.ChangePasswordRequest,
 ):
     await user_service.change_password(
-        session=session, db_user=current_user, request=request
+        session=session, db_user=current_user, new_password=request.password
     )
 
 
@@ -94,18 +96,16 @@ async def change_password(
     "/deactivate",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        400: {"model": IncorrectPasswordException.Model},
         403: {"model": AllForbidenExceptionModels},
     },
 )
 async def deactivate_user(
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
-    request: api_models.DeactivateUserRequest,
+    current_user: Annotated[
+        db_models.User, Depends(get_current_active_user("security"))
+    ],
 ):
-    await user_service.deactivate_user(
-        session=session, request=request, db_user=current_user
-    )
+    await user_service.deactivate_user(session=session, db_user=current_user)
 
 
 @auth_router.post(
@@ -135,7 +135,7 @@ async def activate_user(
 )
 async def logout(
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
 ):
     await user_service.logout_user(session=session, db_user=current_user)
 
@@ -149,8 +149,13 @@ async def get_new_tokens(
     session: Annotated[AsyncSession, Depends(get_session)],
     result: Annotated[TokenBearerResult, Depends(RefreshTokenBearer())],
 ):
+    try:
+        uuid = UUID(result.payload.sub)
+    except ValueError:
+        raise InvalidTokenException
+    
     return await user_service.refresh_token(
-        session, refresh_token=result.token, email=result.sub
+        session, refresh_token=result.token, uuid=uuid
     )
 
 
@@ -161,9 +166,27 @@ async def get_new_tokens(
 )
 async def change_display_name(
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
     request: api_models.ChangeDisplayNameRequest,
 ):
     return await user_service.change_display_name(
         session=session, request=request, db_user=current_user
+    )
+
+
+@auth_router.post(
+    "/security-token",
+    response_model=api_models.VerifyPasswordResponse,
+    responses={
+        400: {"model": IncorrectPasswordException.Model},
+        403: {"model": AllForbidenExceptionModels},
+    },
+)
+async def verify_password(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
+    request: api_models.VerifyPasswordRequest,
+):
+    return await user_service.verify_password(
+        session=session, password=request.password, db_user=current_user
     )

@@ -1,37 +1,31 @@
 import { useCallback } from "react"
 import { useCookies } from "react-cookie"
-import { refreshTokenAPI } from "../api"
-import { TokensResponse } from "../types"
 
 export type Tokens = {
     accessToken?: string,
-    refreshToken?: string
-}
+    refreshToken?: string,
+    securityToken?: string,
+} | undefined
 
 export default function useTokensCookies(): { tokens: Tokens, clearTokens: () => void, setTokens: (tokens: Tokens) => void } {
-    const [tokensCookies, setTokensCookies, removeTokensCookies] = useCookies(["access-token", "refresh-token"])
+    const [tokensCookies, setTokensCookies, removeTokensCookies] = useCookies(["tokens"])
 
     const setTokens = useCallback((tokens: Tokens) => {
-        const { accessToken, refreshToken } = tokens
-        if (accessToken) {
-            setTokensCookies("access-token", accessToken)
+        const oldTokens: Tokens = tokensCookies.tokens
+        const newTokens: Tokens = {
+            ...oldTokens,
+            ...tokens
         }
-        if (refreshToken) {
-            setTokensCookies("refresh-token", refreshToken)
-        }
-    }, [])
+        setTokensCookies("tokens", newTokens)
+    }, [tokensCookies])
 
     const clearTokens = useCallback(() => {
-        removeTokensCookies("access-token")
-        removeTokensCookies("refresh-token")
+        removeTokensCookies("tokens")
     }, [])
 
 
     return {
-        tokens: {
-            accessToken: tokensCookies["access-token"],
-            refreshToken: tokensCookies["refresh-token"]
-        },
+        tokens: tokensCookies.tokens,
         clearTokens,
         setTokens,
     }

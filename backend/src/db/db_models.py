@@ -16,6 +16,7 @@ class User(db.Model):
     disabled: Mapped[bool] = mapped_column(unique=False, default=False)
     access_token: Mapped[str] = mapped_column(unique=False, default="")
     refresh_token: Mapped[str] = mapped_column(unique=False, default="")
+    security_token: Mapped[str] = mapped_column(unique=False, default="")
     is_logged_in: Mapped[bool] = mapped_column(unique=False, default=False)
 
     contacts = relationship("Contact", back_populates="owner")

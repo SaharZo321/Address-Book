@@ -1,13 +1,13 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, List, ListItem, MenuItem, Typography } from "@mui/material";
 import { PropsWithChildren, useCallback, useContext } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import _ from "lodash";
 import { ChevronRight } from "@mui/icons-material";
-import { UserAPIContext } from "../../Contexts/UserAPIContext";
+import { useUserAPIContext } from "../../Contexts/UserAPIContext";
 
 export default function UserSettings() {
-    const { logout } = useContext(UserAPIContext)
-
+    const { logout: { mutateAsync: logout } } = useUserAPIContext()
+    const navigate = useNavigate()
 
     return (
         <Dialog
@@ -28,8 +28,10 @@ export default function UserSettings() {
                 </Box>
             </DialogContent>
             <DialogActions sx={{ margin: "16px", justifyContent: "space-between" }}>
-                <Button>
-                    <Link to="/home" style={{ textDecoration: "None", color: "inherit", }}>Close</Link>
+                <Button
+                    onClick={() => navigate("/home")}
+                >
+                    Close
                 </Button>
                 <Button
                     variant="contained"

@@ -16,7 +16,7 @@ contacts_router = APIRouter()
 @contacts_router.post("", response_model=api_models.ContactResponse)
 async def create_contact(
     contact: api_models.ContactCreateRequest,
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     return await contact_service.create_contact(
@@ -32,7 +32,7 @@ def QueryField():
 
 @contacts_router.get("", response_model=api_models.ContactsResponse)
 async def read_contacts(
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
     session: Annotated[AsyncSession, Depends(get_session)],
     page: Annotated[int, Query(description="Zero indexed page number")] = 0,
     page_size: int = 20,
@@ -69,7 +69,7 @@ async def read_contacts(
 async def read_contact(
     contact_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
 ):
     """Use this to get a certain contact with a known id."""
     return await contact_service.get_contact_by_id(
@@ -90,7 +90,7 @@ async def update_contact(
     contact_id: int,
     contact: api_models.UpdateContactRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
 ):
     """Use this to update a certain contact with a known id."""
     return await contact_service.edit_contact(
@@ -109,7 +109,7 @@ async def delete_contacts(
         list[int], Query(description="Array of ID's of wanted contacts to be deleted")
     ],
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
 ):
     """Use this to delete multiple contacts."""
     return (
@@ -126,7 +126,7 @@ async def delete_contacts(
 async def delete_contact(
     contact_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: Annotated[db_models.User, Depends(get_current_active_user)],
+    current_user: Annotated[db_models.User, Depends(get_current_active_user("access"))],
 ):
     """Use this to delete a contact."""
     return api_models.DeleteResponse(

@@ -1,16 +1,16 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem, TextField, Typography, useTheme } from "@mui/material";
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem, TextField, Typography, useTheme } from "@mui/material";
 import { ChangeEventHandler, useCallback, useContext, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { emailRegex } from "../constants";
-import { UserAPIContext } from "../Contexts/UserAPIContext";
-import { AxiosError } from "axios";
+import { useUserAPIContext } from "../Contexts/UserAPIContext";
+import PendingButton from "../Components/PendingButton";
 
 type LoginCredentials = { email: string, password: string }
 
 const emptyCredentials: LoginCredentials = { email: "", password: "" }
 
 export default function Login() {
-    const userAPIContext = useContext(UserAPIContext)
+    const { login: { mutateAsync: login, isPending } } = useUserAPIContext()
     const [{ email, password }, setCredentials] = useState<LoginCredentials>(emptyCredentials)
     const [formError, setFormError] = useState<{ errorType: "inactive" | "credentials", errorDetail: string }>()
     const onFormChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
@@ -38,17 +38,13 @@ export default function Login() {
     }, [isEmailInvalid, isPasswordInvalid])
 
     const onLogin = useCallback(async () => {
-        await userAPIContext.login({ email, password }, {
+        await login({ email, password }, {
             onSuccess: () => navigate("/home"),
             onError: (error) => {
-                if (!error.response) {
-                    // server not responding
-                    return
-                }
-                const { detail } = error.response.data
-                if (error.response.status === 401) {
+                const { detail } = error.response?.data
+                if (error.response?.status === 401) {
                     setFormError({ errorType: "credentials", errorDetail: detail })
-                } else if (error.response.status === 403) {
+                } else if (error.response?.status === 403) {
                     setFormError({ errorType: "inactive", errorDetail: detail })
                 }
             }
@@ -120,13 +116,17 @@ export default function Login() {
                 </List>
             </DialogContent>
             <DialogActions sx={{ justifyContent: "center" }}>
-                <Button
+                <PendingButton
                     variant="contained"
                     disabled={isFormInvalid}
                     onClick={onLogin}
+                    isPending={isPending}
+                    progressProps={{
+                        size: 24
+                    }}
                 >
                     Login
-                </Button>
+                </PendingButton>
             </DialogActions>
         </Dialog>
     )

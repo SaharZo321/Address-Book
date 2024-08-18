@@ -3,17 +3,17 @@ import { AccountCircle, Brightness4, Brightness7, Menu as MenuIcon } from "@mui/
 import { MouseEvent, useContext, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { ThemeColorContext } from "../App";
-import { UserAPIContext } from "../Contexts/UserAPIContext";
 import { User } from "../types";
+import { useUserAPIContext } from "../Contexts/UserAPIContext";
 
 export default function Navbar() {
-    const {toggleColorMode, mode} = useContext(ThemeColorContext)
+    const { toggleColorMode, mode } = useContext(ThemeColorContext)
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
     const navigate = useNavigate()
     const handleMenu = (event: MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget)
     }
-    const {logout, user} = useContext(UserAPIContext)
+    const { logout: { mutateAsync: logout }, user } = useUserAPIContext()
 
     const handleClose = () => {
         setAnchorEl(null)
@@ -60,7 +60,7 @@ export default function Navbar() {
                             anchorEl={anchorEl}
                             handleClose={handleClose}
                             menuItems={[
-                                { action: "Logout", onClick: logout},
+                                { action: "Logout", onClick: logout },
                                 { action: "Settings", onClick: () => navigate("/settings") }
                             ]}
                             zIndex={theme.zIndex.modal + 1}

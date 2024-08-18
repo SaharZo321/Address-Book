@@ -20,7 +20,9 @@ fastapi_app.add_middleware(
     trustedhost.TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"]
 )
 
-fastapi_app.include_router(auth_router, prefix=f"{prefix}/auth", tags=["authentication"])
+fastapi_app.include_router(
+    auth_router, prefix=f"{prefix}/users", tags=["authentication"]
+)
 fastapi_app.include_router(
     contacts_router, prefix=f"{prefix}/contacts", tags=["contacts"]
 )

@@ -1,62 +1,86 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from "@mui/material";
-import { ChangeEventHandler, HTMLInputTypeAttribute, useCallback, useMemo, useState } from "react";
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogProps, DialogTitle, ListItem, TextField, TextFieldProps } from "@mui/material";
+import { ChangeEventHandler, HTMLInputTypeAttribute, useCallback, useEffect, useMemo, useState } from "react";
+import PendingButton from "./PendingButton";
 
-export default function OneFieldDialog(props: {
-    open: boolean, handleClose: () => void,
-    title: string,
-    handleOk: (value: string) => void,
-    fieldType?: HTMLInputTypeAttribute,
-    fieldError?: (value: string) => boolean,
-    fieldPlaceholder?: string,
-    contentText?: string
-}) {
+export interface OneFieldDialogProps extends DialogProps {
+    title?: string,
+    isPending?: boolean,
+    textFieldProps?: TextFieldProps,
+    onOk?: (value: string) => void,
+    error?: (value: string) => boolean
+    onClose?: () => void
+    resetField?: boolean
+}
+
+export default function OneFieldDialog({
+    isPending,
+    resetField,
+    onClose,
+    textFieldProps,
+    onOk,
+    error,
+    children,
+    ...props
+}: OneFieldDialogProps) {
     const [fieldState, setFieldState] = useState("")
 
-    const onFieldChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
-        setFieldState(event.target.value)
-    }, [])
+    const { autoFocus, onChange, error: textFieldError, ...fieldProps } = textFieldProps || {}
 
     const handleOk = useCallback(() => {
-        props.handleClose()
-        props.handleOk(fieldState)
-    }, [fieldState, props.handleOk, props.handleClose])
+        setFieldState("")
+        onOk?.(fieldState)
+    }, [fieldState, onOk])
 
-    const fieldError = useMemo(() => {
-        return props.fieldError?.(fieldState)
-    }, [props.fieldError, fieldState])
+    const handleClose = useCallback(() => {
+        onClose?.()
+        setFieldState("")
+    }, [onClose])
+
+    useEffect(() => {
+        if (resetField) {
+            console.log("hello")
+            setFieldState("")
+        }
+    }, [resetField])
+
+    const fieldError = useMemo(() => error?.(fieldState), [fieldState, error])
 
     return (
         <Dialog
-            open={props.open}
-            onClose={props.handleClose}
+            {...props}
+            onClose={handleClose}
         >
-            <DialogTitle textAlign="center">{props.title}</DialogTitle>
+            <DialogTitle textAlign="center" visibility={props.title ? "visible" : "hidden"}>{props.title}</DialogTitle>
             <DialogContent>
-                {
-                    props.contentText && 
-                    <DialogContentText>
-                        {props.contentText}
-                    </DialogContentText>
-                }
-                <TextField
-                    onChange={onFieldChange}
-                    autoFocus
-                    type={props.fieldType}
-                    error={fieldError}
-                    placeholder={props.fieldPlaceholder}
-                />
+                <ListItem>
+                    <TextField
+                        {...fieldProps}
+                        onChange={(event) => {
+                            setFieldState(event.target.value)
+                            onChange?.(event)
+                        }}
+                        value={fieldState}
+                        autoFocus={autoFocus !== undefined ? autoFocus : true}
+                        error={fieldError}
+                    />
+                </ListItem>
+                {children}
             </DialogContent>
             <DialogActions sx={{ justifyContent: "space-between" }}>
-                <Button onClick={props.handleClose}>
+                <Button onClick={handleClose}>
                     cancel
                 </Button>
-                <Button
+                <PendingButton
                     variant="contained"
                     onClick={handleOk}
                     disabled={fieldError}
+                    isPending={isPending}
+                    progressProps={{
+                        size: 24,
+                    }}
                 >
                     ok
-                </Button>
+                </PendingButton>
             </DialogActions>
         </Dialog>
     )

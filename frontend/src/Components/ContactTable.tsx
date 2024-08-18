@@ -60,7 +60,13 @@ export default function ContactTable(props: { sx?: SxProps }) {
     }, [])
 
     const setSortModel = useCallback((sortModel: GridSortModel) => {
-        if (!sortModel[0]) return
+        if (!sortModel[0]) {
+            setOptions(prev => ({
+                ...prev,
+                sort: undefined
+            }))
+            return
+        }
         setOptions(prev => ({
             ...prev,
             sort: {

@@ -1,9 +1,10 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem, Step, StepLabel, Stepper, TextField, Typography, useTheme } from "@mui/material";
+import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem, Step, StepLabel, Stepper, TextField, Typography, useTheme } from "@mui/material";
 import { ChangeEventHandler, useCallback, useContext, useMemo, useState } from "react";
 import { Link, redirect, useNavigate } from "react-router-dom";
 import { emailRegex } from "../constants";
-import { UserAPIContext } from "../Contexts/UserAPIContext";
 import { AxiosError } from "axios";
+import { useUserAPIContext } from "../Contexts/UserAPIContext";
+import PendingButton from "../Components/PendingButton";
 
 
 type RegisterCredentials = { email: string, password: string, confirmPassword: string, displayName: string }
@@ -11,7 +12,7 @@ type RegisterCredentials = { email: string, password: string, confirmPassword: s
 const emptyCredentials: RegisterCredentials = { email: "", password: "", confirmPassword: "", displayName: "" }
 
 export default function Register() {
-    const userAPIContext = useContext(UserAPIContext)
+    const { createUser: { mutateAsync: createUser, isPending } } = useUserAPIContext()
     const [{ email, password, displayName, confirmPassword }, setCredentials] = useState<RegisterCredentials>(emptyCredentials)
     const [passwordsUnmatched, setPasswordUnmatched] = useState(false)
     const [emailError, setEmailError] = useState(false)
@@ -52,11 +53,14 @@ export default function Register() {
         if (password !== confirmPassword) {
             setPasswordUnmatched(true)
         } else {
-            await userAPIContext.createUser({ email, password, displayName }).then(response => {
-                navigate("../login", {relative: "path"})
-            }, (error: AxiosError) => {
-                if (error.response?.status === 409) {
-                    setEmailError(true)
+            await createUser({ email, password, displayName }, {
+                onSuccess: response => {
+                    navigate("../login", { relative: "path" })
+                },
+                onError: error => {
+                    if (error.response?.status === 409) {
+                        setEmailError(true)
+                    }
                 }
             })
         }
@@ -134,13 +138,17 @@ export default function Register() {
                 </List>
             </DialogContent>
             <DialogActions sx={{ justifyContent: "center" }}>
-                <Button
+                <PendingButton
                     variant="contained"
                     disabled={isFormInvalid}
                     onClick={onSignUp}
+                    isPending={isPending}
+                    progressProps={{
+                        size: 24
+                    }}
                 >
-                    Sign Up
-                </Button>
+                    sign up
+                </PendingButton>
             </DialogActions>
         </Dialog>
     )
