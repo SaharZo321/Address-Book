@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogProps, DialogTitle, ListItem, TextField, TextFieldProps } from "@mui/material";
+import { Button, ButtonProps, Dialog, DialogActions, DialogContent, DialogContentText, DialogProps, DialogTitle, ListItem, TextField, TextFieldProps } from "@mui/material";
 import { ChangeEventHandler, HTMLInputTypeAttribute, useCallback, useEffect, useMemo, useState } from "react";
 import PendingButton from "./PendingButton";
 
@@ -6,17 +6,17 @@ export interface OneFieldDialogProps extends DialogProps {
     title?: string,
     isPending?: boolean,
     textFieldProps?: TextFieldProps,
+    okButtonProps?: ButtonProps,
     onOk?: (value: string) => void,
     error?: (value: string) => boolean
     onClose?: () => void
-    resetField?: boolean
 }
 
 export default function OneFieldDialog({
     isPending,
-    resetField,
     onClose,
     textFieldProps,
+    okButtonProps = { children: "ok" },
     onOk,
     error,
     children,
@@ -36,19 +36,11 @@ export default function OneFieldDialog({
         setFieldState("")
     }, [onClose])
 
-    useEffect(() => {
-        if (resetField) {
-            console.log("hello")
-            setFieldState("")
-        }
-    }, [resetField])
-
     const fieldError = useMemo(() => error?.(fieldState), [fieldState, error])
 
     return (
         <Dialog
             {...props}
-            onClose={handleClose}
         >
             <DialogTitle textAlign="center" visibility={props.title ? "visible" : "hidden"}>{props.title}</DialogTitle>
             <DialogContent>
@@ -78,9 +70,8 @@ export default function OneFieldDialog({
                     progressProps={{
                         size: 24,
                     }}
-                >
-                    ok
-                </PendingButton>
+                    {...okButtonProps}
+                />
             </DialogActions>
         </Dialog>
     )

@@ -7,9 +7,8 @@ import { DeleteDialog, FormDialog } from "./Dialogs";
 import { useContactAPIContext } from "../Contexts/ContactAPIContext";
 import _ from "lodash";
 
-const initialPaginationModel: GridPaginationModel = { page: 0, pageSize: 10 }
 
-export default function ContactTable(props: { sx?: SxProps }) {
+export default function ContactTable(props: { sx?: SxProps, initialPaginationModel: GridPaginationModel }) {
 
     const [modals, setModals] = useState({ delete: false, form: false })
     const [selectedContacts, setSelectedContacts] = useState<GridRowSelectionModel>([])
@@ -19,19 +18,12 @@ export default function ContactTable(props: { sx?: SxProps }) {
     const {
         contactsModel,
         isPending: isFetching,
-        // readContactMutation: { mutateAsync: readContact, isReadContactPending },
         deleteContactMutation: { mutateAsync: deleteContact, isPending: isDeleteContactPending },
         editContactMutation: { mutateAsync: editContact, isPending: isEditContactPending },
         createContactMutation: { mutateAsync: createContact, isPending: isCreateContactPending },
         deleteContactsMutation: { mutateAsync: deleteContacts, isPending: isDeleteContactsPending },
         setOptions,
     } = useContactAPIContext()
-
-    useEffect(() => {
-        setOptions({
-            pagination: initialPaginationModel
-        })
-    } ,[])
 
     const setFilterModel = useCallback((filterModel: GridFilterModel) => {
         if (!filterModel.items[0] || !filterModel.items[0].value) {
@@ -163,7 +155,7 @@ export default function ContactTable(props: { sx?: SxProps }) {
     ], [])
 
     const CustomRowCount = useCallback((props: GridSlotProps["pagination"]) => {
-        
+
         return (
             <>
                 {
@@ -214,7 +206,7 @@ export default function ContactTable(props: { sx?: SxProps }) {
                         pageSizeOptions={[10, 20, 50]}
                         initialState={{
                             pagination: {
-                                paginationModel: initialPaginationModel
+                                paginationModel: props.initialPaginationModel
                             }
                         }}
                         paginationMode="server"

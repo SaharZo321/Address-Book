@@ -4,13 +4,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { emailRegex } from "../constants";
 import { useUserAPIContext } from "../Contexts/UserAPIContext";
 import PendingButton from "../Components/PendingButton";
+import { SnackBarContext } from "../App";
 
 type LoginCredentials = { email: string, password: string }
 
 const emptyCredentials: LoginCredentials = { email: "", password: "" }
 
 export default function Login() {
-    const { login: { mutateAsync: login, isPending } } = useUserAPIContext()
+    const {
+        login: { mutateAsync: login, isPending: isLoginPending },
+        activateUser: { mutateAsync: activateUser, isPending: isActivateUserPending }
+    } = useUserAPIContext()
     const [{ email, password }, setCredentials] = useState<LoginCredentials>(emptyCredentials)
     const [formError, setFormError] = useState<{ errorType: "inactive" | "credentials", errorDetail: string }>()
     const onFormChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
@@ -52,13 +56,19 @@ export default function Login() {
     }, [email, password])
 
     const onActivate = useCallback(async () => {
-        // const response = await userAPIContext.activateUser({ email, password })
-        // if (response.ok) {
-        //     await onLogin()
-        // } else if (response.status === 401) {
-        //     const { detail }: { detail: string } = await response.json()
-        //     setFormError({ errorType: "credentials", errorDetail: detail })
-        // }
+
+        await activateUser({ email, password }, {
+            onSuccess: async () => {
+                await onLogin()
+            },
+            onError: async error => {
+                if (error.response?.status === 401) {
+                    const { detail } = error.response?.data
+                    setFormError({ errorType: "credentials", errorDetail: detail })
+                }
+
+            }
+        })
     }, [email, password])
 
 
@@ -120,7 +130,7 @@ export default function Login() {
                     variant="contained"
                     disabled={isFormInvalid}
                     onClick={onLogin}
-                    isPending={isPending}
+                    isPending={isLoginPending}
                     progressProps={{
                         size: 24
                     }}

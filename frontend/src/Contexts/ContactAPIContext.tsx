@@ -4,6 +4,7 @@ import { Contact, ContactsModel, ContactsModelResponse, ContactsOptions, Contact
 import { createContactAPI, deleteContactAPI, deleteContactsAPI, editContactAPI, fetchContactAPI, fetchContactsAPI } from "../api"
 import { createContext, Dispatch, PropsWithChildren, SetStateAction, useCallback, useContext, useState } from "react"
 import { AxiosError, AxiosResponse } from "axios"
+import { SnackBarContext } from "../App"
 
 
 
@@ -28,12 +29,12 @@ export const useContactAPIContext = () => {
     return context
 }
 
-export default function ContactAPIProvider(props: PropsWithChildren) {
+export default function ContactAPIProvider(props: PropsWithChildren<{ initialOptions: ContactsOptions }>) {
     const { tokens } = useTokensCookies()
-
+    const { openSnackbar, openErrorSnackbar } = useContext(SnackBarContext)
     const queryClient = useQueryClient()
 
-    const [options, setOptions] = useState<ContactsOptions>({})
+    const [options, setOptions] = useState<ContactsOptions>(props.initialOptions)
 
     const { data: contactsModel, isPending } = useQuery<ContactsModel>({
         queryKey: ["contacts", options, tokens?.accessToken],
@@ -59,7 +60,7 @@ export default function ContactAPIProvider(props: PropsWithChildren) {
         }
     })
 
-    const onMutationSuccess = useCallback(() => {
+    const invalidateTable = useCallback(() => {
         queryClient.invalidateQueries({ queryKey: ["contacts"] })
     }, [])
 
@@ -70,7 +71,8 @@ export default function ContactAPIProvider(props: PropsWithChildren) {
             }
             return await fetchContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
-        onSuccess: onMutationSuccess
+        onSuccess: invalidateTable,
+        onError: openErrorSnackbar,
     })
 
     const deleteContactMutation = useMutation<AxiosResponse, AxiosError<any>, { id: number }>({
@@ -80,7 +82,15 @@ export default function ContactAPIProvider(props: PropsWithChildren) {
             }
             return await deleteContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
-        onSuccess: onMutationSuccess
+        onSuccess: () => {
+            openSnackbar({
+                open: true,
+                message: "Contact was deleted successfully",
+                severity: "info"
+            })
+            invalidateTable()
+        },
+        onError: openErrorSnackbar,
     })
 
     const editContactMutation = useMutation<AxiosResponse, AxiosError<any>, { contact: ContactWithID }>({
@@ -90,7 +100,15 @@ export default function ContactAPIProvider(props: PropsWithChildren) {
             }
             return await editContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
-        onSuccess: onMutationSuccess
+        onSuccess: () => {
+            openSnackbar({
+                open: true,
+                message: "Contact was edited successfully",
+                severity: "success"
+            })
+            invalidateTable()
+        },
+        onError: openErrorSnackbar,
     })
 
     const createContactMutation = useMutation<AxiosResponse, AxiosError<any>, { contact: Contact }>({
@@ -100,7 +118,15 @@ export default function ContactAPIProvider(props: PropsWithChildren) {
             }
             return await createContactAPI({ ...vars, accessToken: tokens.accessToken })
         },
-        onSuccess: onMutationSuccess
+        onSuccess: () => {
+            openSnackbar({
+                open: true,
+                message: "Contact was created successfully",
+                severity: "success"
+            })
+            invalidateTable()
+        },
+        onError: openErrorSnackbar,
     })
 
     const deleteContactsMutation = useMutation<AxiosResponse, AxiosError<any>, { ids: number[] }>({
@@ -110,7 +136,15 @@ export default function ContactAPIProvider(props: PropsWithChildren) {
             }
             return await deleteContactsAPI({ ...vars, accessToken: tokens.accessToken })
         },
-        onSuccess: onMutationSuccess
+        onSuccess: () => {
+            openSnackbar({
+                open: true,
+                message: "Contacts were deleted successfully",
+                severity: "info"
+            })
+            invalidateTable()
+        },
+        onError: openErrorSnackbar,
     })
 
     return (
