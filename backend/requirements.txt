@@ -1,0 +1,8 @@
+alchemical==1.0.2
+argon2==0.1.10
+fastapi==0.115.6
+pydantic==2.10.3
+PyJWT==2.9.0
+PyJWT==2.10.1
+SQLAlchemy==2.0.31
+typing_extensions==4.12.2
