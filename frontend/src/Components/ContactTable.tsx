@@ -6,6 +6,8 @@ import { Add, Delete, Edit } from "@mui/icons-material";
 import { DeleteDialog, FormDialog } from "./Dialogs";
 import { useContactAPIContext } from "../Contexts/ContactAPIContext";
 import _ from "lodash";
+import { useTableOptions } from "../hooks/useTableOptions";
+import { useContactTableData } from "../hooks/useContactTableData";
 
 
 export default function ContactTable(props: { sx?: SxProps, initialPaginationModel: GridPaginationModel }) {
@@ -13,67 +15,16 @@ export default function ContactTable(props: { sx?: SxProps, initialPaginationMod
     const [modals, setModals] = useState({ delete: false, form: false })
     const [selectedContacts, setSelectedContacts] = useState<GridRowSelectionModel>([])
     const [clickedContact, setClickedContact] = useState<ContactWithID>()
-
+    const { setFilter, setSort, setPagination } = useTableOptions()
+    const { contacts, totalRows } = useContactTableData()
 
     const {
-        contactsModel,
         isPending: isFetching,
         deleteContactMutation: { mutateAsync: deleteContact, isPending: isDeleteContactPending },
         editContactMutation: { mutateAsync: editContact, isPending: isEditContactPending },
         createContactMutation: { mutateAsync: createContact, isPending: isCreateContactPending },
         deleteContactsMutation: { mutateAsync: deleteContacts, isPending: isDeleteContactsPending },
-        setOptions,
     } = useContactAPIContext()
-
-    const setFilterModel = useCallback((filterModel: GridFilterModel) => {
-        if (!filterModel.items[0] || !filterModel.items[0].value) {
-            setOptions(prev => ({
-                ...prev,
-                filter: undefined
-            }))
-            return
-        }
-        setOptions(prev => ({
-            ...prev,
-            filter: {
-                field: _.snakeCase(filterModel.items[0].field),
-                operator: (
-                    filterModel.items[0].operator.match(/[\w]+/) ?
-                        _.snakeCase(filterModel.items[0].operator) :
-                        filterModel.items[0].operator
-                ),
-                values: (
-                    typeof filterModel.items[0].value == "string" ?
-                        [filterModel.items[0].value] :
-                        filterModel.items[0].value
-                )
-            }
-        }))
-    }, [])
-
-    const setSortModel = useCallback((sortModel: GridSortModel) => {
-        if (!sortModel[0]) {
-            setOptions(prev => ({
-                ...prev,
-                sort: undefined
-            }))
-            return
-        }
-        setOptions(prev => ({
-            ...prev,
-            sort: {
-                field: _.snakeCase(sortModel[0].field),
-                order: sortModel[0].sort
-            }
-        }))
-    }, [])
-
-    const setPaginationModel = useCallback((paginationModel: GridPaginationModel) => {
-        setOptions(prev => ({
-            ...prev,
-            pagination: paginationModel
-        }))
-    }, [])
 
     const closeModals = useCallback(() => {
         setModals({ delete: false, form: false })
@@ -186,22 +137,15 @@ export default function ContactTable(props: { sx?: SxProps, initialPaginationMod
         )
     }, [selectedContacts.length, onDeleteSelectionClick, onAddClick])
 
-    const rowCountRef = useRef(0);
 
-    const rowCount = useMemo(() => {
-        if (contactsModel) {
-            rowCountRef.current = contactsModel.total
-        }
-        return rowCountRef.current;
-    }, [contactsModel?.total])
 
     return (
         <>
             <List>
                 <ListItem>
                     <DataGrid
-                        rows={contactsModel?.contacts}
-                        rowCount={rowCount}
+                        rows={contacts}
+                        rowCount={totalRows}
                         columns={columns}
                         pageSizeOptions={[10, 20, 50]}
                         initialState={{
@@ -220,9 +164,9 @@ export default function ContactTable(props: { sx?: SxProps, initialPaginationMod
                         slots={{
                             pagination: CustomRowCount
                         }}
-                        onPaginationModelChange={setPaginationModel}
-                        onFilterModelChange={setFilterModel}
-                        onSortModelChange={setSortModel}
+                        onPaginationModelChange={setPagination}
+                        onFilterModelChange={setFilter}
+                        onSortModelChange={setSort}
                         filterDebounceMs={250}
                         keepNonExistentRowsSelected
                     />
