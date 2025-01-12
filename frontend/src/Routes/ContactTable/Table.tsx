@@ -1,13 +1,13 @@
 import { Button, List, ListItem, SxProps } from "@mui/material";
-import { ContactResponse, ContactWithID, Contact, ContactsModel, ContactsModelResponse, ContactsOptions } from "../types";
+import { ContactResponse, ContactWithID, Contact, ContactsModel, ContactsModelResponse, ContactsOptions } from "../../types";
 import { DataGrid, GridActionsCellItem, GridColDef, GridFilterModel, GridPagination, GridPaginationModel, GridRowParams, GridRowSelectionModel, GridSlotProps, GridSortModel } from '@mui/x-data-grid';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Add, Delete, Edit } from "@mui/icons-material";
-import { DeleteDialog, FormDialog } from "./Dialogs";
-import { useContactAPIContext } from "../Contexts/ContactAPIContext";
+import { DeleteDialog, FormDialog } from "../../Components/Dialogs";
+import { useContactAPIContext } from "../../Contexts/ContactAPIContext";
 import _ from "lodash";
-import { useTableOptions } from "../hooks/useTableOptions";
-import { useContactTableData } from "../hooks/useContactTableData";
+import { useTableOptions } from "../../hooks/useTableOptions";
+import { useContactTableData } from "../../hooks/useContactTableData";
 
 
 declare module '@mui/x-data-grid' {
@@ -64,13 +64,18 @@ type TableProps = {
         state: GridRowSelectionModel,
     }
     isFetching: boolean,
-    onDeleteClick: (contact: ContactWithID) => void
-    onEditClick: (contact: ContactWithID) => void
-    onAddClick: () => void
-    setPagination: (model: GridPaginationModel) => void
-    setFilter: (model: GridFilterModel) => void
-    setSort: (model: GridSortModel) => void
-    onDeleteSelectionClick: () => void
+    callbacks: {
+        onDeleteSelectionClick: () => void
+        onDeleteClick: (contact: ContactWithID) => void
+        onEditClick: (contact: ContactWithID) => void
+        onAddClick: () => void
+    }
+    setOptions: {
+        setPagination: (model: GridPaginationModel) => void
+        setFilter: (model: GridFilterModel) => void
+        setSort: (model: GridSortModel) => void
+    }
+
 }
 
 
@@ -83,12 +88,12 @@ export default function Table(props: TableProps) {
                     <GridActionsCellItem
                         icon={<Delete />}
                         label="Delete"
-                        onClick={() => props.onDeleteClick(grid.row)}
+                        onClick={() => props.callbacks.onDeleteClick(grid.row)}
                     />,
                     <GridActionsCellItem
                         icon={<Edit />}
                         label="Edit"
-                        onClick={() => props.onEditClick(grid.row)}
+                        onClick={() => props.callbacks.onEditClick(grid.row)}
                     />,
                 ]
             ),
@@ -99,7 +104,7 @@ export default function Table(props: TableProps) {
         { field: 'email', headerName: 'Email', width: 220 },
         { field: 'phone', headerName: 'Phone', width: 140 },
         {
-            field: 'full_name',
+            field: 'fullName',
             headerName: 'Full name',
             description: 'This column is not sortable nor filterable.',
             sortable: false,
@@ -138,14 +143,14 @@ export default function Table(props: TableProps) {
                     noRowsVariant: 'skeleton',
                 },
                 pagination: {
-                    onAdd: props.onAddClick,
-                    onDeleteSelection: props.onDeleteSelectionClick,
+                    onAdd: props.callbacks.onAddClick,
+                    onDeleteSelection: props.callbacks.onDeleteSelectionClick,
                     isSelected: props.rowSelection.state.length !== 0
                 }
             }}
-            onPaginationModelChange={props.setPagination}
-            onFilterModelChange={props.setFilter}
-            onSortModelChange={props.setSort}
+            onPaginationModelChange={props.setOptions.setPagination}
+            onFilterModelChange={props.setOptions.setFilter}
+            onSortModelChange={props.setOptions.setSort}
             filterDebounceMs={250}
             keepNonExistentRowsSelected
         />

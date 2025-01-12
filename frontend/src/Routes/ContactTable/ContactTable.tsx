@@ -1,5 +1,5 @@
 import { Box, SxProps } from "@mui/material";
-import Table from "../../Components/Table"
+import Table from "./Table"
 import ContactAPIProvider, { useContactAPIContext } from "../../Contexts/ContactAPIContext";
 import { GridPaginationModel, GridRowSelectionModel } from "@mui/x-data-grid";
 import { DeleteDialog, FormDialog } from "../../Components/Dialogs";
@@ -73,14 +73,18 @@ export default function ContactTable(props: { initialPagination: GridPaginationM
                 initialPaginationModel={props.initialPagination}
                 sx={props.sx}
                 isFetching={isFetching}
-                onAddClick={onAddClick}
-                onDeleteClick={onDeleteClick}
-                onDeleteSelectionClick={onDeleteSelectionClick}
-                onEditClick={onEditClick}
                 contactsData={{ contacts: contacts ? contacts : [], total: totalRows }}
-                setFilter={setFilter}
-                setPagination={setPagination}
-                setSort={setSort}
+                callbacks={{
+                    onAddClick: onAddClick,
+                    onDeleteClick: onDeleteClick,
+                    onDeleteSelectionClick: onDeleteSelectionClick,
+                    onEditClick: onEditClick
+                }}
+                setOptions={{
+                    setFilter: setFilter,
+                    setPagination: setPagination,
+                    setSort: setSort,
+                }}
                 rowSelection={{
                     set: setSelectedContacts,
                     state: selectedContacts,
