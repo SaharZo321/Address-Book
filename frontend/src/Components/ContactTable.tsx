@@ -10,6 +10,51 @@ import { useTableOptions } from "../hooks/useTableOptions";
 import { useContactTableData } from "../hooks/useContactTableData";
 
 
+declare module '@mui/x-data-grid' {
+    interface PaginationPropsOverrides {
+        onDeleteSelection: () => void,
+        onAdd: () => void,
+        isSelected: boolean,
+    }
+}
+
+function CustomPaginationComponent(props: (GridSlotProps["pagination"] & {
+    onDeleteSelection: () => void,
+    onAdd: () => void,
+    isSelected: boolean,
+})) {
+
+    const { onAdd, onDeleteSelection, isSelected, ...paginationProps } = props;
+    return (
+        <>
+            {
+                isSelected ?
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={onDeleteSelection}
+                        sx={{
+                            marginRight: "auto",
+                        }}
+                    >
+                        <Delete />
+                    </Button> :
+                    <Button
+                        variant="contained"
+                        onClick={onAdd}
+                        sx={{
+                            marginRight: "auto",
+                            marginLeft: "16px",
+                        }}
+                    >
+                        <Add />
+                    </Button>
+            }
+            <GridPagination {...paginationProps} />
+        </>
+    )
+}
+
 export default function ContactTable(props: { sx?: SxProps, initialPaginationModel: GridPaginationModel }) {
 
     const [modals, setModals] = useState({ delete: false, form: false })
@@ -105,40 +150,6 @@ export default function ContactTable(props: { sx?: SxProps, initialPaginationMod
         },
     ], [])
 
-    const CustomRowCount = useCallback((props: GridSlotProps["pagination"]) => {
-
-        return (
-            <>
-                {
-                    selectedContacts.length ?
-                        <Button
-                            variant="contained"
-                            color="error"
-                            onClick={onDeleteSelectionClick}
-                            sx={{
-                                marginRight: "auto",
-                            }}
-                        >
-                            <Delete />
-                        </Button> :
-                        <Button
-                            variant="contained"
-                            onClick={onAddClick}
-                            sx={{
-                                marginRight: "auto",
-                                marginLeft: "16px",
-                            }}
-                        >
-                            <Add />
-                        </Button>
-                }
-                <GridPagination {...props} />
-            </>
-        )
-    }, [selectedContacts.length, onDeleteSelectionClick, onAddClick])
-
-
-
     return (
         <>
             <List>
@@ -162,7 +173,18 @@ export default function ContactTable(props: { sx?: SxProps, initialPaginationMod
                         rowSelectionModel={selectedContacts}
                         loading={isFetching}
                         slots={{
-                            pagination: CustomRowCount
+                            pagination: CustomPaginationComponent,
+                        }}
+                        slotProps={{
+                            loadingOverlay: {
+                                variant: 'circular-progress',
+                                noRowsVariant: 'skeleton',
+                            },
+                            pagination: {
+                                onAdd: onAddClick,
+                                onDeleteSelection: onDeleteSelectionClick,
+                                isSelected: selectedContacts.length !== 0
+                            }
                         }}
                         onPaginationModelChange={setPagination}
                         onFilterModelChange={setFilter}
