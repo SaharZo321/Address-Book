@@ -55,7 +55,7 @@ export default function ContactAPIProvider(props: PropsWithChildren<{ initialOpt
                     firstName: contact.first_name,
                     lastName: contact.last_name,
                 })),
-                total: contactsModelResponse.total
+                totalRows: contactsModelResponse.total
             }
         }
     })

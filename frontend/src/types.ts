@@ -32,7 +32,7 @@ export type ContactWithID = {
 
 export type ContactsModel = {
     contacts: ContactWithID[],
-    total: number
+    totalRows: number
 }
 
 export type ContactsModelResponse = {

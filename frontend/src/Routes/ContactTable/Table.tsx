@@ -118,7 +118,7 @@ export default function Table(props: TableProps) {
     return (
         <DataGrid
             rows={props.contactsData.contacts}
-            rowCount={props.contactsData.total}
+            rowCount={props.contactsData.totalRows}
             columns={columns}
             pageSizeOptions={[10, 20, 50]}
             initialState={{

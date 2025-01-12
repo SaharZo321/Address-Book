@@ -73,7 +73,7 @@ export default function ContactTable(props: { initialPagination: GridPaginationM
                 initialPaginationModel={props.initialPagination}
                 sx={props.sx}
                 isFetching={isFetching}
-                contactsData={{ contacts: contacts ? contacts : [], total: totalRows }}
+                contactsData={{ contacts, totalRows }}
                 callbacks={{
                     onAddClick: onAddClick,
                     onDeleteClick: onDeleteClick,
