@@ -8,9 +8,10 @@ import Register from './Routes/Register'
 import UserSettings from './Routes/Settings/UserSettings'
 import CosmeticsSettings from './Routes/Settings/CosmeticsSettings'
 import SecuritySettings from './Routes/Settings/SecuritySettings'
-import ContactTablePage from './Routes/ContactTablePage'
+import ContactTable from './Routes/ContactTable/ContactTable.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createBrowserRouter, redirect, RouterProvider } from 'react-router-dom'
+import ContactTablePage from './Routes/ContactTable/ContactTablePage.tsx'
 
 
 const queryClient = new QueryClient()

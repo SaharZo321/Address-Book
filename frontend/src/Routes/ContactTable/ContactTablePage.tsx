@@ -1,12 +1,11 @@
-import { Box } from "@mui/material";
-import ContactTable from "../Components/ContactTable"
-import ContactAPIProvider from "../Contexts/ContactAPIContext";
-import { GridPaginationModel } from "@mui/x-data-grid";
+import { GridPaginationModel } from "@mui/x-data-grid"
+import ContactAPIProvider from "../../Contexts/ContactAPIContext"
+import ContactTable from "./ContactTable"
+import { Box } from "@mui/material"
 
 const initialPaginationModel: GridPaginationModel = { page: 0, pageSize: 10 }
 
 export default function ContactTablePage() {
-
     return (
         <ContactAPIProvider initialOptions={{
             pagination: initialPaginationModel
@@ -21,8 +20,9 @@ export default function ContactTablePage() {
                 justifyContent: "center",
                 alignItems: "center",
             }}>
+
                 <ContactTable
-                    initialPaginationModel={initialPaginationModel}
+                    initialPagination={initialPaginationModel} 
                     sx={{
                         maxWidth: "90vw",
                         height: "70vh"
